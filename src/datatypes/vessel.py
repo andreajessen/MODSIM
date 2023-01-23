@@ -14,9 +14,9 @@ class Vessel():
         self.track = None
     
     def __init__(self):
-        self.air_draft = 0
-        self.beam = 0
-        self.length = 0
+        self.air_draft = 2
+        self.beam = 2
+        self.length = 4
         self.label = ""
         self.track = None
     
@@ -25,3 +25,9 @@ class Vessel():
     
     def get_track(self):
         return self.track
+
+    def get_beam(self):
+        return self.beam
+    
+    def get_length(self):
+        return self.length

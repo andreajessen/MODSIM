@@ -21,9 +21,14 @@ def create_frame(t, vessels, figsize, y_x_lim):
     fig = plt.figure(figsize=figsize)
     for vessel in vessels:
         x = vessel.get_track().get_x_values()
-        y = vessel.get_track().get_y_values()        
+        y = vessel.get_track().get_y_values()
+        cornerpoints = vessel.get_track().get_cornerpoints_values()        
         plt.plot(x[:(t+1)], y[:(t+1)])
         plt.plot(x[t], y[t], marker = 'o' )
+        # Create square plot for shape of vessel
+        xs = list(cornerpoints[t][:,0])+[cornerpoints[t][:,0][0]]
+        ys = list(cornerpoints[t][:,1])+[cornerpoints[t][:,1][0]]
+        plt.plot(xs, ys, 'b-')
     plt.xlim([-y_x_lim,y_x_lim])
     plt.xlabel('x', fontsize = 14)
     plt.ylim([-y_x_lim,y_x_lim])
