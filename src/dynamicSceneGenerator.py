@@ -28,7 +28,7 @@ class DynamicSceneGenerator():
 
             theta_start = np.radians(np.random.randint(0, 360))
             w = np.random.uniform(w_min, w_max)
-            vessel.set_track(self.superSimpleTrackGenerator.generate_track(start_time, end_time, frequency, radius, theta_start, p_0, w))
+            vessel.set_track(self.superSimpleTrackGenerator.generate_track(start_time, end_time, frequency, radius, theta_start, p_0, w, vessel.get_beam(), vessel.get_length()))
             used_radii.append(radius)
 
     def set_vessels(self, number):

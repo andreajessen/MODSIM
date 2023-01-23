@@ -3,7 +3,7 @@ from datatypes.track import Track
 
 class SuperSimpleTrackGenerator():
 
-    def generate_track(self, start_time, end_time, frequency, radius, theta_start, p_0, w):
+    def generate_track(self, start_time, end_time, frequency, radius, theta_start, p_0, w, vessel_beam, vessel_length):
         """ Generate a super simple track
         start_time (int, seconds): start time of track
         end_time (int, seconds): end time of track
@@ -22,7 +22,14 @@ class SuperSimpleTrackGenerator():
             x = p_0[0]+radius*np.cos(theta)
             y = p_0[1]+radius*np.sin(theta)
             z = 0
+            direction_vector = [-np.sin(theta), np.cos(theta)]
+
+            rotation_matrix = np.array([[-np.sin(theta), -np.cos(theta)], [np.cos(theta), -np.sin(theta)]])
+            position = np.array([x, y])
+            cornerpoints_VRF = np.array([[vessel_length/2, -vessel_beam/2], [-vessel_length/2, -vessel_beam/2], [-vessel_length/2, vessel_beam/2], [vessel_length/2, vessel_beam/2]])
+            cornerpoints_WRF = [np.dot(rotation_matrix,uv)+position for uv in cornerpoints_VRF]
+
             time_stamp = start_time + frequency*n
-            track.addPosition(x, y, z, time_stamp)
+            track.addPosition(x, y, z, direction_vector, cornerpoints_WRF, time_stamp)
 
         return track
