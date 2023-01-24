@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import imageio
 
-def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=200, fps=3):
+def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=400, fps=3):
     for i in range(len(vessels)-1):
         if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
             raise Exception("Points are not collected at the same time stamps")
@@ -29,9 +29,9 @@ def create_frame(t, vessels, figsize, y_x_lim):
         xs = list(cornerpoints[t][:,0])+[cornerpoints[t][:,0][0]]
         ys = list(cornerpoints[t][:,1])+[cornerpoints[t][:,1][0]]
         plt.plot(xs, ys, 'b-')
-    plt.xlim([-y_x_lim,y_x_lim])
+    plt.xlim([0,y_x_lim])
     plt.xlabel('x', fontsize = 14)
-    plt.ylim([-y_x_lim,y_x_lim])
+    plt.ylim([0,y_x_lim])
     plt.ylabel('y', fontsize = 14)
     plt.title(f'Relationship between x and y at step {t}', fontsize=14)
     plt.savefig(f'./img/img_{t}.png', transparent = False,  facecolor = 'white')

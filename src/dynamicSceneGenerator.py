@@ -30,7 +30,7 @@ class DynamicSceneGenerator():
         return True
 
 
-    def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=180, w_min=0.005, w_max=0.03, p_0=[0,0], frequency=1):
+    def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=180, w_min=0.005, w_max=0.03, p_0=[200,200], frequency=1):
         if max_radius < len(self.vessels):
             raise Exception("Can not generate a collision free model. Increase radius and decrease number of vessels.")
         used_radii = np.array([])
