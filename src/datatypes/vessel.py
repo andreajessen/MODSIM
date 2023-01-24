@@ -1,6 +1,6 @@
 class Vessel():
 
-    def __init__(self, air_draft, beam, length, label):
+    def __init__(self, air_draft=2, beam=2, length=4, label=""):
         """
         Beam (int): The width of the widest point of the boat
         air_draft (int): The distance between the ship's waterline and the highest point of the boat; indicates the distance the vessel can safely pass under
@@ -11,13 +11,6 @@ class Vessel():
         self.beam = beam
         self.length = length
         self.label = label
-        self.track = None
-    
-    def __init__(self):
-        self.air_draft = 2
-        self.beam = 2
-        self.length = 4
-        self.label = ""
         self.track = None
     
     def set_track(self, track):

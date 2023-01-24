@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import imageio
 
-def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=15, fps=3):
+def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=200, fps=3):
     for i in range(len(vessels)-1):
         if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
             raise Exception("Points are not collected at the same time stamps")
@@ -24,7 +24,7 @@ def create_frame(t, vessels, figsize, y_x_lim):
         y = vessel.get_track().get_y_values()
         cornerpoints = vessel.get_track().get_cornerpoints_values()        
         plt.plot(x[:(t+1)], y[:(t+1)])
-        plt.plot(x[t], y[t], marker = 'o' )
+        #plt.plot(x[t], y[t], marker = 'o' )
         # Create square plot for shape of vessel
         xs = list(cornerpoints[t][:,0])+[cornerpoints[t][:,0][0]]
         ys = list(cornerpoints[t][:,1])+[cornerpoints[t][:,1][0]]
