@@ -1,3 +1,4 @@
+import numpy as np
 class Vessel():
 
     def __init__(self, air_draft=2, beam=2, length=4, label=""):
@@ -24,3 +25,9 @@ class Vessel():
     
     def get_length(self):
         return self.length
+    
+    def calculate_cornerpoints(self, direction_vector, position):
+        rotation_matrix = np.array([[direction_vector[0], -direction_vector[1]], [direction_vector[1], direction_vector[0]]])
+        cornerpoints_VRF = np.array([[self.length/2, -self.beam/2], [-self.length/2, -self.beam/2], [-self.length/2, self.beam/2], [self.length/2, self.beam/2]])
+        cornerpoints_WRF = [np.dot(rotation_matrix,uv)+position for uv in cornerpoints_VRF]
+        return cornerpoints_WRF

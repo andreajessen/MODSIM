@@ -49,7 +49,7 @@ class DynamicSceneGenerator():
 
             theta_start = np.radians(np.random.randint(0, 360))
             w = np.random.uniform(w_min, w_max)
-            vessel.set_track(self.superSimpleTrackGenerator.generate_track(start_time, end_time, frequency, radius, theta_start, p_0, w, vessel.get_beam(), vessel.get_length()))
+            vessel.set_track(self.superSimpleTrackGenerator.generate_track(start_time, end_time, frequency, radius, theta_start, p_0, w, vessel))
             used_radii = np.append(used_radii,radius)
             for x in range(1, required_distance):
                 used_radii = np.append(used_radii,radius+x)
