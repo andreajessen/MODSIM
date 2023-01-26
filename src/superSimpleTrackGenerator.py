@@ -23,11 +23,7 @@ class SuperSimpleTrackGenerator():
             y = p_0[1]+radius*np.sin(theta)
             z = 0
             direction_vector = [-np.sin(theta), np.cos(theta)]
-            position = np.array([x, y])
-
-            cornerpoints_WRF = vessel.calculate_cornerpoints(direction_vector, position)
-            
             time_stamp = start_time + frequency*n
-            track.addPosition(x, y, z, direction_vector, cornerpoints_WRF, time_stamp)
+            track.addPosition(x, y, z, direction_vector, time_stamp)
 
         return track

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import imageio
+import numpy as np
 
 def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=400, fps=3):
     for i in range(len(vessels)-1):
@@ -20,14 +21,17 @@ def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x
 def create_frame(t, vessels, figsize, y_x_lim):
     fig = plt.figure(figsize=figsize)
     for vessel in vessels:
-        x = vessel.get_track().get_x_values()
-        y = vessel.get_track().get_y_values()
-        cornerpoints = vessel.get_track().get_cornerpoints_values()        
+        track = vessel.get_track()
+        x = track.get_x_values()
+        y = track.get_y_values()
         plt.plot(x[:(t+1)], y[:(t+1)])
         #plt.plot(x[t], y[t], marker = 'o' )
         # Create square plot for shape of vessel
-        xs = list(cornerpoints[t][:,0])+[cornerpoints[t][:,0][0]]
-        ys = list(cornerpoints[t][:,1])+[cornerpoints[t][:,1][0]]
+        position = np.array([x[t], y[t]])
+        direction_vector = track.get_direction_vector(t)
+        cornerpoints = vessel.calculate_cornerpoints(direction_vector, position)
+        xs = list(cornerpoints[:,0])+[cornerpoints[:,0][0]]
+        ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
         plt.plot(xs, ys, 'b-')
     plt.xlim([0,y_x_lim])
     plt.xlabel('x', fontsize = 14)
