@@ -5,12 +5,13 @@ class SuperSimpleTrackGenerator():
 
     def generate_track(self, start_time, end_time, frequency, radius, theta_start, p_0, w, vessel):
         """ Generate a super simple track
-        start_time (int, seconds): start time of track
-        end_time (int, seconds): end time of track
-        frequency (int, seconds): time difference between the discrete time steps
-        radius (int): radius of the circle
-        p_0 (np.array): the position vector of the centre of the circle
-        w (int): rotation rate rad/sec
+        Input: 
+        - start_time (int, seconds): start time of track
+        - end_time (int, seconds): end time of track
+        - frequency (int, seconds): time difference between the discrete time steps
+        - radius (int): radius of the circle
+        - p_0 (np.array): the position vector of the centre of the circle
+        - w (int): rotation rate rad/sec
         
         return Track
         """

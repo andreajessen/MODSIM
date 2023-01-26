@@ -3,6 +3,14 @@ import imageio
 import numpy as np
 
 def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=400, fps=3):
+    '''
+    Saves a gif of the track of a vessel
+    Input:
+    - gif_path (string): Path to save visualization
+    - figsize (tuple, int): Size of figure
+    - y_x_lim (int): limitation of x and y axis
+    - fps (int): frames per second in the gif
+    '''
     for i in range(len(vessels)-1):
         if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
             raise Exception("Points are not collected at the same time stamps")
@@ -19,7 +27,15 @@ def visualize(vessels, gif_path='./dynamicSceneExample.gif', figsize=(6, 6), y_x
 
 
 def create_frame(t, vessels, figsize, y_x_lim):
-    fig = plt.figure(figsize=figsize)
+    '''
+    Creates the plot image for the given time step
+    Input:
+    - t (int): current time step
+    - vessels (array): List of vessels in the scene
+    - figsize (int): Size of figure
+    - y_x_lim (int): limitation of x and y axis
+    '''
+    _ = plt.figure(figsize=figsize)
     for vessel in vessels:
         track = vessel.get_track()
         x = track.get_x_values()
