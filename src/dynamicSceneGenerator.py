@@ -2,23 +2,37 @@ import numpy as np
 from superSimpleTrackGenerator import SuperSimpleTrackGenerator
 from datatypes.vessel import Vessel
 
-# Airdraft, beam, length
+# Example sizes of vessels. The elements are the sizes of the airdraft, beam and length
 vessel_sizes = {'sailboat': [20, 4, 14], 'motorboat': [4, 3, 7], 'ferry': [15, 11, 64]}
 
+##################################################################
+#
+# Dynamic scene generator
+# - Generates a dynamic scene
+#
+##################################################################
 class DynamicSceneGenerator():
 
-    def __init__(self, vessels):
+    def __init__(self, vessels=[]):
         """
         Vessels: List of vessels (of type Vessel) in the environment
         """
         self.vessels = vessels
         self.superSimpleTrackGenerator = SuperSimpleTrackGenerator()
     
-    def __init__(self):
-        self.superSimpleTrackGenerator = SuperSimpleTrackGenerator()
-        self.vessels = []
+    def get_vessels(self):
+        return self.vessels
     
     def check_legal_radius(self, radius, used_radii, required_distance):
+        '''
+        Check if the chosen radius is allowed
+        Input:
+        - radius (int)
+        - used_radii (array)
+        - required_distance (int): the required distance the vessels need to keep
+        Output:
+        - Boolean: True if allowed, else false
+        '''
         if used_radii.size == 0: return True
 
         used_radii_lower = used_radii[used_radii<radius]
@@ -31,6 +45,18 @@ class DynamicSceneGenerator():
 
 
     def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=180, w_min=0.005, w_max=0.03, p_0=[200,200], frequency=1):
+        '''
+        Generates random tracks for each vessel in the scene
+        Input:
+        - start_time (int, seconds): start time of track
+        - end_time (int, seconds): end time of track
+        - min_radius (int): minimum radius of the circle
+        - max_radius (int): max radius of the circle
+        - w_min (double): minimum rotation rate (radians/seconds)
+        - w_max (double): max rotation rate (radians/seconds)
+        - p_0 (array): position vector of the circular track
+        - frequency (int, seconds): time difference between the discrete time steps
+        '''
         if max_radius < len(self.vessels):
             raise Exception("Can not generate a collision free model. Increase radius and decrease number of vessels.")
         used_radii = np.array([])
@@ -58,6 +84,11 @@ class DynamicSceneGenerator():
 
 
     def set_random_vessels(self, number):
+        '''
+        Sets size and label for the given number of vessels 
+        Input:
+        - number (int): number of vessels that should be in the scene
+        '''
         self.vessels = []
         for n in range(number):
             if n%3==0:
@@ -66,6 +97,3 @@ class DynamicSceneGenerator():
                 self.vessels.append(Vessel(vessel_sizes['ferry'][0], vessel_sizes['ferry'][1], vessel_sizes['ferry'][2], 'ferry'))
             else:
                 self.vessels.append(Vessel(vessel_sizes['motorboat'][0], vessel_sizes['motorboat'][1], vessel_sizes['motorboat'][2], 'motorboat'))
-
-    def get_vessels(self):
-        return self.vessels
