@@ -64,3 +64,14 @@ class VirtualCamera:
         p_W_homogeneous = np.append(p_W, 1)
         p_I = self.P.dot(p_W_homogeneous)
         return p_I/p_I[-1]
+
+    def project_points(self, points):
+        projected_points = [self.project_point(point) for point in points]
+        return np.array(projected_points)
+    
+    def get_orientation_vector(self):
+        print(self.yaw)
+        y = round(np.cos(np.pi/2-self.yaw),5)
+        x = round(np.cos(self.yaw),5)
+        return np.array([x,y])
+    
