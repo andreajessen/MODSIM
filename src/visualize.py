@@ -100,8 +100,6 @@ def visualize_camera(t, camera, vessels, y_x_lim=400, figsize=(6,6)):
     
     camera_position = camera.get_position()
     camera_orientation = camera.get_orientation_vector()
-    print(camera_position[0]+camera_orientation[0])
-    print(camera_position[0]+camera_orientation[1])
     plt.plot(camera_position[0], camera_position[1], 'ro')
     plt.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
     plt.xlabel('x', fontsize = 14)
