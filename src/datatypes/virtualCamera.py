@@ -44,8 +44,8 @@ class VirtualCamera:
         # np.round to 5 decimals because the number π cannot be represented exactly as a floating-point number.
         R_xyz = R_z.dot(R_y.dot(R_x))
 
-        R_align = np.array([[0,0,1],[-1, 0, 0], [0,-1,0]])
-        rotation_matrix = R_xyz.dot(R_align)
+        R_align = np.array([[0,-1,0],[0, 0, -1], [1,0,0]])
+        rotation_matrix = R_align.dot(R_xyz)
         return rotation_matrix
 
     def update_camera_angle(self, roll, yaw, pitch):
@@ -56,7 +56,7 @@ class VirtualCamera:
     
     def calculate_projection_matrix(self):
         self.R = self.calculate_rotation_matrix()
-        t = self.position_WRF
+        t = self.R.dot(-self.position_WRF)
         self.M = np.hstack((self.R, t[:, None]))
         self.P = self.K.dot(self.M)
 
