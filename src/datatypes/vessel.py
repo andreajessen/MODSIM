@@ -42,14 +42,14 @@ class Vessel():
         Output:
         - cornerpoints (array)
         '''
-        direction_vector = self.track.get_direction_vector(time_stamp)
+        direction_vector = self.track.get_direction_vector(time_stamp) # Order of cornerpoints (length, beam): Front back, back back, back front, front front 
         position = self.track.get_position(time_stamp)[:2]
         rotation_matrix = np.array([[direction_vector[0], -direction_vector[1]], [direction_vector[1], direction_vector[0]]])
         cornerpoints_VRF = np.array([[self.length/2, -self.beam/2], [-self.length/2, -self.beam/2], [-self.length/2, self.beam/2], [self.length/2, self.beam/2]])
         cornerpoints_WRF = [np.dot(rotation_matrix,uv)+position for uv in cornerpoints_VRF]
         return np.array(cornerpoints_WRF)
     
-    def calculate_3D_cornerpoints(self, time_stamp):
+    def calculate_3D_cornerpoints(self, time_stamp): # Order of cornerpoints (length, beam, height): Front back lower, back back lower, back front lower, front front lower, Front back upper, back back upper, back front upper, front front upper,
         cornerpoints_2D = self.calculate_2D_cornerpoints(time_stamp)
         cornerpoints_3D = [np.append(cornerpoint, 0) for cornerpoint in cornerpoints_2D]
         cornerpoints_3D.extend([np.append(cornerpoint, self.air_draft) for cornerpoint in cornerpoints_2D])

@@ -57,6 +57,7 @@ class DynamicSceneGenerator():
         - p_0 (array): position vector of the circular track
         - frequency (int, seconds): time difference between the discrete time steps
         '''
+        self.p_0 = p_0
         if max_radius < len(self.vessels):
             raise Exception("Can not generate a collision free model. Increase radius and decrease number of vessels.")
         used_radii = np.array([])
@@ -80,6 +81,8 @@ class DynamicSceneGenerator():
             for x in range(1, required_distance):
                 used_radii = np.append(used_radii,radius+x)
                 used_radii = np.append(used_radii,radius-x)
+        
+        self.largest_radius = np.max(used_radii)
 
 
 
@@ -97,3 +100,15 @@ class DynamicSceneGenerator():
                 self.vessels.append(Vessel(vessel_sizes['ferry'][0], vessel_sizes['ferry'][1], vessel_sizes['ferry'][2], 'ferry'))
             else:
                 self.vessels.append(Vessel(vessel_sizes['motorboat'][0], vessel_sizes['motorboat'][1], vessel_sizes['motorboat'][2], 'motorboat'))
+    
+    def get_larges_radius(self):
+        if not hasattr(self, 'largest_radius'):
+            raise NameError("Largest radius is not sat")
+        return self.largest_radius
+
+
+    
+    def get_path_centre(self):
+        if not hasattr(self, 'p_0'):
+            raise NameError("P_0 is not sat")
+        return self.p_0

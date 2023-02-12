@@ -2,11 +2,12 @@ import numpy as np
 
 class VirtualCamera:
     
-    def __init__(self, position_WRF, roll, yaw, pitch, focal_length, p_x, p_y, principal_point, skew=0):
+    def __init__(self, position_WRF, roll, yaw, pitch, focal_length, p_x, p_y, principal_point, image_bounds, skew=0):
         '''
         Input:
         principal_point: Principal point of image plane (c_x,c_y) in pixel coordinates
         '''
+        self.image_bounds = image_bounds # In pixels (x,y)
         # Position in WRF coordinates
         self.position_WRF = position_WRF
         self.roll = roll # Roll is a counterclockwise rotation of φ about the x-axis
@@ -70,7 +71,6 @@ class VirtualCamera:
         return np.array(projected_points)
     
     def get_orientation_vector(self):
-        print(self.yaw)
         y = round(np.cos(np.pi/2-self.yaw),5)
         x = round(np.cos(self.yaw),5)
         return np.array([x,y])
