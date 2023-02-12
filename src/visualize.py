@@ -168,3 +168,32 @@ def visualize_projections(projected_points, image_bounds, show_box=True, gif_pat
         frames.append(image)
 
     imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
+
+def plot_bbs(bounding_boxes, image_bounds, t, figsize=(6,6)):
+    _, ax = plt.subplots(figsize=figsize)
+    for vessel in bounding_boxes:
+        xs = list(vessel[:,0])+[vessel[0][0]]
+        ys = list(vessel[:,1])+[vessel[0][1]]
+        ax.plot(xs, ys, '-')
+
+    plt.xlim([0,image_bounds[0]])
+    plt.ylim([image_bounds[1],0])
+    plt.ylabel('y', fontsize = 14)
+    ax.xaxis.tick_top()
+    ax.set_xlabel('x', fontsize = 14)    
+    ax.xaxis.set_label_position('top') 
+    plt.title(f'Bounding boxes at time {t}', fontsize=14)
+    plt.savefig(f'./boundingBoxes/boundingBoxes_{t}.png', transparent = False,  facecolor = 'white')
+    plt.close()
+
+
+def visualize_bounding_boxes(bounding_boxes, image_bounds, gif_path='./gifs/boundingBoxes.gif', fps=3):
+    for t in bounding_boxes.keys():
+        plot_bbs(bounding_boxes[t], image_bounds, t)
+    
+    frames = []
+    for t in bounding_boxes.keys():
+        image = imageio.v2.imread(f'./boundingBoxes/boundingBoxes_{t}.png')
+        frames.append(image)
+
+    imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
