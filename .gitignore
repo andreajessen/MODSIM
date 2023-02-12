@@ -5,6 +5,8 @@ __pycache__/
 *$py.class
 myvenv
 img
+cameraPosition
+projectedPoints
 
 # C extensions
 *.so
