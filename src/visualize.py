@@ -169,12 +169,21 @@ def visualize_projections(projected_points, image_bounds, show_box=True, gif_pat
 
     imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
 
-def plot_bbs(bounding_boxes, image_bounds, t, figsize=(6,6)):
+def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, figsize=(6,6)):
     _, ax = plt.subplots(figsize=figsize)
-    for vessel in bounding_boxes:
+    for i in range(len(bounding_boxes)):
+        vessel = bounding_boxes[i]
         xs = list(vessel[:,0])+[vessel[0][0]]
         ys = list(vessel[:,1])+[vessel[0][1]]
         ax.plot(xs, ys, '-')
+        if show_projected_points:
+            if not projected_points:
+                print("Provide projected points when show projected points is true")
+            else:
+                vessel_proj = projected_points[t][i]
+                vessel_x = vessel_proj[:,0]
+                vessel_y = vessel_proj[:,1]
+                ax.plot(vessel_x, vessel_y, 'o')
 
     plt.xlim([0,image_bounds[0]])
     plt.ylim([image_bounds[1],0])
@@ -187,9 +196,9 @@ def plot_bbs(bounding_boxes, image_bounds, t, figsize=(6,6)):
     plt.close()
 
 
-def visualize_bounding_boxes(bounding_boxes, image_bounds, gif_path='./gifs/boundingBoxes.gif', fps=3):
+def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, gif_path='./gifs/boundingBoxes.gif', fps=3):
     for t in bounding_boxes.keys():
-        plot_bbs(bounding_boxes[t], image_bounds, t)
+        plot_bbs(bounding_boxes[t], image_bounds, t, projected_points, show_projected_points)
     
     frames = []
     for t in bounding_boxes.keys():
