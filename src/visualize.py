@@ -77,8 +77,8 @@ def plot_projections(projected_points, image_bounds, t, show_box, figsize=(6,6))
         # Front back upper, back back upper, 
         # back front upper, front front upper,
         if show_box:
-            xs = list(vessel_x[:4])+[vessel_x[0]]+list(vessel_x[4:][vessel_x[4]])
-            ys = list(vessel_y[:4])+[vessel_y[0]]+list(vessel_y[4:][vessel_y[4]])
+            xs = list(vessel_x[0:4])+[vessel_x[0]]+list(vessel_x[4:])+[vessel_x[4]]
+            ys = list(vessel_y[0:4])+[vessel_y[0]]+list(vessel_y[4:])+[vessel_y[4]]
             ax.plot(xs, ys, 'b-')
             ax.plot([vessel_x[1], vessel_x[5]], [vessel_y[1], vessel_y[5]], 'b-')
             ax.plot([vessel_x[2], vessel_x[6]], [vessel_y[2], vessel_y[6]], 'b-')
