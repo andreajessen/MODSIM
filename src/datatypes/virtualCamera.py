@@ -39,14 +39,14 @@ class VirtualCamera:
         return self.position_WRF
     
     def calculate_rotation_matrix(self):
-        R_z = np.round(np.array([[np.cos(self.yaw), -np.sin(self.yaw), 0], [np.sin(self.yaw), np.cos(self.yaw), 0], [0,0,1]]),5)
-        R_y = np.round(np.array([[np.cos(self.pitch), 0, np.sin(self.pitch)],[0,1,0],[-np.sin(self.pitch), 0, np.cos(self.pitch)]]),5)
-        R_x = np.round(np.array([[1, 0, 0], [0, np.cos(self.roll), -np.sin(self.roll)], [0, np.sin(self.roll), np.cos(self.roll)]]),5)
+        R_roll = np.round(np.array([[np.cos(self.roll), -np.sin(self.roll), 0], [np.sin(self.roll), np.cos(self.roll), 0], [0,0,1]]),5)
+        R_yaw = np.round(np.array([[np.cos(self.yaw), 0, np.sin(self.yaw)],[0,1,0],[-np.sin(self.yaw), 0, np.cos(self.yaw)]]),5)
+        R_pitch = np.round(np.array([[1, 0, 0], [0, np.cos(self.pitch), -np.sin(self.pitch)], [0, np.sin(self.pitch), np.cos(self.pitch)]]),5)
         # np.round to 5 decimals because the number π cannot be represented exactly as a floating-point number.
-        R_xyz = R_z.dot(R_y.dot(R_x))
+        R_orientation = R_roll.dot(R_pitch.dot(R_yaw))
 
         R_align = np.array([[0,-1,0],[0, 0, -1], [1,0,0]])
-        rotation_matrix = R_align.dot(R_xyz)
+        rotation_matrix = R_orientation.dot(R_align)
         return rotation_matrix
 
     def update_camera_angle(self, roll, yaw, pitch):
