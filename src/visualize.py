@@ -171,19 +171,22 @@ def visualize_projections(projected_points, image_bounds, show_box=True, gif_pat
 
 def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, figsize=(6,6)):
     _, ax = plt.subplots(figsize=figsize)
-    for i in range(len(bounding_boxes)):
-        vessel = bounding_boxes[i]
-        xs = list(vessel[:,0])+[vessel[0][0]]
-        ys = list(vessel[:,1])+[vessel[0][1]]
+    for vesselId, bb in bounding_boxes.items():
+        cx = bb['centre']['x']
+        cy = bb['centre']['y']
+        w = bb['width']
+        h = bb['height']
+        xs = [cx-w/2, cx-w/2, cx+w/2, cx+w/2, cx-w/2] 
+        ys = [cy-h/2, cy+h/2, cy+h/2, cy-h/2, cy-h/2]
         ax.plot(xs, ys, '-')
         if show_projected_points:
             if not projected_points:
                 print("Provide projected points when show projected points is true")
             else:
-                vessel_proj = projected_points[t][i]
-                vessel_x = vessel_proj[:,0]
-                vessel_y = vessel_proj[:,1]
-                ax.plot(vessel_x, vessel_y, 'o')
+                vessel_proj = projected_points[t][vesselId]
+                x_vals = list(map(lambda v : v['x'], vessel_proj.values()))
+                y_vals = list(map(lambda v : v['y'], vessel_proj.values()))
+                ax.plot(x_vals, y_vals, 'o')
 
     plt.xlim([0,image_bounds[0]])
     plt.ylim([image_bounds[1],0])

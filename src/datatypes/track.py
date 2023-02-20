@@ -11,8 +11,8 @@ class Track:
        self.x_values = []
        self.y_values = []
        self.z_values = []
-       self.direction_vectors = []
        self.time_stamps = []
+       self.track_dict={}
     
 
     def addPosition(self, x, y, z, heading_rad, time_stamp):
@@ -22,7 +22,7 @@ class Track:
         - x (int): X position of the vessel
         - y (int): Y position of the vessel
         - z (int): Z position of the vessel
-        - direction_vector (array): a vector indicating the direction of the vessel
+        - heading_rad (int): the angle between the direction and x axis in radians
         - time_stamp (int): time stamp of the position
         '''
         if self.time_stamps and time_stamp <= self.time_stamps[-1]:
@@ -30,10 +30,11 @@ class Track:
         self.x_values.append(x)
         self.y_values.append(y)
         self.z_values.append(z)
-        self.heading_rad = heading_rad
-        direction_vector = [np.cos(heading_rad), np.sin(heading_rad)]
-        self.direction_vectors.append(direction_vector)
+        #self.heading_rads.append(heading_rad)
+        #direction_vector = [np.cos(heading_rad), np.sin(heading_rad)]
+        #self.direction_vectors.append(direction_vector)
         self.time_stamps.append(time_stamp)
+        self.track_dict[time_stamp] = {'center_position_m': [x, y, z], 'heading_rad': heading_rad}
     
     def get_position(self, time_stamp):
         '''
@@ -43,8 +44,7 @@ class Track:
         Output:
         - position (array)
         '''
-        index = self.time_stamps.index(time_stamp)
-        return [self.x_values[index], self.y_values[index], self.z_values[index]]
+        return self.track_dict[time_stamp]['center_position_m']
     
     def get_x_values(self):
         return self.x_values
@@ -60,10 +60,9 @@ class Track:
     
     def get_track_dict(self):
         '''
-        Returns a dictionary of all the vessels positions with timestamp as key, and position as item.
+        Returns a dictionary of all the vessels positions with timestamp as key, and position and heading rad as items.
         '''
-        merged_points = list(zip(self.x_values, self.y_values, self.z_values))
-        return dict(zip(self.time_stamps, merged_points))
+        return self.track_dict
     
     def get_direction_vector(self, time_stamp):
         '''
@@ -73,12 +72,11 @@ class Track:
         Output:
         - direction_vector (array)
         '''
-        index = self.time_stamps.index(time_stamp)
-        return self.direction_vectors[index]
+        heading_rad = self.get_heading_rad(time_stamp)
+        return [np.cos(heading_rad), np.sin(heading_rad)]
     
-    def get_direction_vectors(self):
-        return self.direction_vectors()
-    
+    def get_heading_rad(self, time_stamp):
+        return self.track_dict[time_stamp]['heading_rad']
 
 
     
