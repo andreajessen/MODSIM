@@ -15,7 +15,7 @@ class Track:
        self.time_stamps = []
     
 
-    def addPosition(self, x, y, z, direction_vector, time_stamp):
+    def addPosition(self, x, y, z, heading_rad, time_stamp):
         '''
         Adds position and direction of the vessel for a new timestep
         Input:
@@ -30,6 +30,8 @@ class Track:
         self.x_values.append(x)
         self.y_values.append(y)
         self.z_values.append(z)
+        self.heading_rad = heading_rad
+        direction_vector = [np.cos(heading_rad), np.sin(heading_rad)]
         self.direction_vectors.append(direction_vector)
         self.time_stamps.append(time_stamp)
     
