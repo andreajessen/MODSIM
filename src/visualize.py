@@ -68,8 +68,8 @@ def plot_projections(projected_points, image_bounds, t, show_box, figsize=(6,6))
     '''
     _, ax = plt.subplots(figsize=figsize)
     for vessel in projected_points:
-        vessel_x = vessel[:,0]
-        vessel_y = vessel[:,1]
+        vessel_x = np.array([point.image_coordinate[0] for point in vessel])
+        vessel_y = np.array([point.image_coordinate[1] for point in vessel])
         ax.plot(vessel_x, vessel_y, 'o')
         # Order of cornerpoints (length, beam, height): 
         # Front back lower, back back lower, 
@@ -181,8 +181,8 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
                 print("Provide projected points when show projected points is true")
             else:
                 vessel_proj = projected_points[t][i]
-                vessel_x = vessel_proj[:,0]
-                vessel_y = vessel_proj[:,1]
+                vessel_x = np.array([point.image_coordinate[0] for point in vessel_proj])
+                vessel_y = np.array([point.image_coordinate[1] for point in vessel_proj])
                 ax.plot(vessel_x, vessel_y, 'o')
 
     plt.xlim([0,image_bounds[0]])
