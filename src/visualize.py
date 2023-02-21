@@ -173,8 +173,8 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
     _, ax = plt.subplots(figsize=figsize)
     for i in range(len(bounding_boxes)):
         vessel = bounding_boxes[i]
-        xs = list(vessel[:,0])+[vessel[0][0]]
-        ys = list(vessel[:,1])+[vessel[0][1]]
+        xs = np.array([vessel.get_xmin(), vessel.get_xmax(), vessel.get_xmax(), vessel.get_xmin(), vessel.get_xmin()])
+        ys = np.array([vessel.get_ymin(), vessel.get_ymin(), vessel.get_ymax(), vessel.get_ymax(), vessel.get_ymin()])
         ax.plot(xs, ys, '-')
         if show_projected_points:
             if not projected_points:
