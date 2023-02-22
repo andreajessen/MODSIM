@@ -3,11 +3,11 @@ import imageio
 import numpy as np
 import os
 
-def visualize(vessels, gif_path='./gifs/dynamicSceneExample.gif', figsize=(6, 6), y_x_lim=400, fps=3):
+def visualize(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3):
     '''
     Saves a gif of the track of a vessel
     Input:
-    - gif_path (string): Path to save visualization
+    - folder_path (string): Path to the folder to save visualization
     - figsize (tuple, int): Size of figure
     - y_x_lim (int): limitation of x and y axis
     - fps (int): frames per second in the gif
@@ -23,7 +23,7 @@ def visualize(vessels, gif_path='./gifs/dynamicSceneExample.gif', figsize=(6, 6)
     for t in vessels[0].get_track().get_time_stamps():
         image = imageio.v2.imread(f'./img/img_{t}.png')
         frames.append(image)
-    
+    gif_path = os.path.join(folder_path, 'dynamicScene.gif')
     imageio.mimsave(gif_path, frames, fps = fps, loop = 1)
 
 
@@ -127,7 +127,7 @@ def visualize_camera(t, camera, vessels, y_x_lim=None, figsize=(6,6)):
     plt.savefig(f'./cameraPosition/cameraPosition_{t}.png', transparent = False,  facecolor = 'white')
     plt.close()
 
-def visualize_camera_gif(camera, vessels, y_x_lim=None, figsize=(6,6)):
+def visualize_camera_gif(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6)):
     time_steps = vessels[0].get_track().get_time_stamps()
     for t in time_steps:
         visualize_camera(t, camera, vessels, y_x_lim, figsize)
@@ -137,10 +137,11 @@ def visualize_camera_gif(camera, vessels, y_x_lim=None, figsize=(6,6)):
         image = imageio.v2.imread(f'./cameraPosition/cameraPosition_{t}.png')
         frames.append(image)
     
-    imageio.mimsave(f'./gifs/camera_position.gif', frames, fps = 3, loop = 1)
+    gif_path = os.path.join(folder_path,'camera_position.gif')
+    imageio.mimsave(gif_path, frames, fps = 3, loop = 1)
 
 
-def visualize_projections_calculate(vessels, camera, show_box=True): # Now the calculations are done here. Maybe we want to just send in a list with projected points with timestamps?
+def visualize_projections_calculate(vessels, camera, folder_path = './gifs', show_box=True): # Now the calculations are done here. Maybe we want to just send in a list with projected points with timestamps?
     for i in range(len(vessels)-1):
         if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
             raise Exception("Points are not collected at the same time stamps")
@@ -155,10 +156,11 @@ def visualize_projections_calculate(vessels, camera, show_box=True): # Now the c
         image = imageio.v2.imread(f'./projectedPoints/projectedPoints_{t}.png')
         frames.append(image)
 
-    imageio.mimsave(f'./gifs/projected_points.gif', frames, fps = 3, loop = 1)
+    gif_path = os.path.join(folder_path,'projected_point.gif')
+    imageio.mimsave(gif_path, frames, fps = 3, loop = 1)
 
 
-def visualize_projections(projected_points, image_bounds, show_box=True, gif_path='./gifs/projected_points.gif', fps=3):
+def visualize_projections(projected_points, image_bounds, show_box=True, folder_path='./gifs/', fps=3):
     for t in projected_points.keys():
         plot_projections(projected_points[t], image_bounds, t, show_box)
     
@@ -167,6 +169,7 @@ def visualize_projections(projected_points, image_bounds, show_box=True, gif_pat
         image = imageio.v2.imread(f'./projectedPoints/projectedPoints_{t}.png')
         frames.append(image)
 
+    gif_path = os.path.join(folder_path,'projected_point.gif')
     imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
 
 def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, figsize=(6,6)):
@@ -199,13 +202,14 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
     plt.close()
 
 
-def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, gif_path='./gifs/boundingBoxes.gif', fps=3):
+def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, folder_path='./gifs/', fps=3):
     for t in bounding_boxes.keys():
-        plot_bbs(bounding_boxes[t], image_bounds, t, projected_points, show_projected_points)
+        plot_bbs(bounding_boxes[t], image_bounds, int(t), projected_points, show_projected_points)
     
     frames = []
     for t in bounding_boxes.keys():
         image = imageio.v2.imread(f'./boundingBoxes/boundingBoxes_{t}.png')
         frames.append(image)
 
+    gif_path = os.path.join(folder_path, 'boundingBoxes.gif')
     imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
