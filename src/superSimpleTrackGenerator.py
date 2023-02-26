@@ -23,8 +23,9 @@ class SuperSimpleTrackGenerator():
             x = p_0[0]+radius*np.cos(theta)
             y = p_0[1]+radius*np.sin(theta)
             z = 0
-            direction_vector = [-np.sin(theta), np.cos(theta)]
+            # direction_vector = [-np.sin(theta), np.cos(theta)]
+            heading_rad = theta+np.pi/2
             time_stamp = start_time + frequency*n
-            track.addPosition(x, y, z, direction_vector, time_stamp)
+            track.addPosition(x, y, z, heading_rad, time_stamp)
 
         return track
