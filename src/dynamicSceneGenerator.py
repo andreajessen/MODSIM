@@ -94,12 +94,13 @@ class DynamicSceneGenerator():
         '''
         self.vessels = []
         for n in range(number):
+            vesselID = f'vessel{n}'
             if n%3==0:
-                self.vessels.append(Vessel(vessel_sizes['sailboat'][0], vessel_sizes['sailboat'][1], vessel_sizes['sailboat'][2], 'sailboat'))
+                self.vessels.append(Vessel(vesselID, vessel_sizes['sailboat'][0], vessel_sizes['sailboat'][1], vessel_sizes['sailboat'][2], 'sailboat'))
             elif n%5==0:
-                self.vessels.append(Vessel(vessel_sizes['ferry'][0], vessel_sizes['ferry'][1], vessel_sizes['ferry'][2], 'ferry'))
+                self.vessels.append(Vessel(vesselID, vessel_sizes['ferry'][0], vessel_sizes['ferry'][1], vessel_sizes['ferry'][2], 'ferry'))
             else:
-                self.vessels.append(Vessel(vessel_sizes['motorboat'][0], vessel_sizes['motorboat'][1], vessel_sizes['motorboat'][2], 'motorboat'))
+                self.vessels.append(Vessel(vesselID, vessel_sizes['motorboat'][0], vessel_sizes['motorboat'][1], vessel_sizes['motorboat'][2], 'motorboat'))
     
     def get_larges_radius(self):
         if not hasattr(self, 'largest_radius'):

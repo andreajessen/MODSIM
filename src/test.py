@@ -1,5 +1,5 @@
 from dynamicSceneGenerator import DynamicSceneGenerator
-from visualize import visualize
+from visualize import visualize_dynamic_scene
 from datatypes.virtualCamera import VirtualCamera
 import numpy as np
 # Generate dynamic scene with random tracks
@@ -7,7 +7,7 @@ dsg = DynamicSceneGenerator()
 dsg.set_random_vessels(6)
 dsg.generate_random_tracks()
 vessels = dsg.get_vessels()
-# visualize(vessels)
+# visualize_dynamic_scene(vessels)
 
 focal_length = 300*10**-6
 px = py = 150*10**-6

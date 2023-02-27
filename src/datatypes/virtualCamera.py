@@ -1,4 +1,5 @@
 import numpy as np
+from datatypes.projectedPoint import ProjectedPoint
 
 class VirtualCamera:
     
@@ -61,13 +62,21 @@ class VirtualCamera:
         self.M = np.hstack((self.R, t[:, None]))
         self.P = self.K.dot(self.M)
 
+    def get_point_in_ccf(self, p_W_homogeneous):
+        return self.M.dot(p_W_homogeneous)
+
     def project_point(self, p_W):
         p_W_homogeneous = np.append(p_W, 1)
+        p_C = self.get_point_in_ccf(p_W_homogeneous)
+        depth = p_C[2] # If depth is negative, the point should not be in the image
         p_I = self.P.dot(p_W_homogeneous)
-        return p_I/p_I[-1]
+        p_I_scaled = p_I/p_I[-1]
+        image_coordinate = np.array([p_I_scaled[0], p_I_scaled[1]])
+        projected_point = ProjectedPoint(image_coordinate, depth)
+        return projected_point
 
     def project_points(self, points):
-        projected_points = [self.project_point(point) for point in points]
+        projected_points = [self.project_point(point) for point in points if self.project_point(point).depth >=0]
         return np.array(projected_points)
     
     def get_orientation_vector(self):

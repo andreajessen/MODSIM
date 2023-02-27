@@ -7,7 +7,7 @@ import numpy as np
 ##################################################################
 class Vessel():
 
-    def __init__(self, air_draft=2, beam=2, length=4, label=""):
+    def __init__(self, id, air_draft=2, beam=2, length=4, label=""):
         """
         Input:
         Beam (int): The width of the widest point of the boat
@@ -20,12 +20,16 @@ class Vessel():
         self.length = length
         self.label = label
         self.track = None
+        self.id = id
     
     def set_track(self, track):
         self.track = track
     
     def get_track(self):
         return self.track
+    
+    def get_track_dict(self):
+        return self.track.get_track_dict()
 
     def get_beam(self):
         return self.beam
