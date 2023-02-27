@@ -6,6 +6,7 @@ from utils import dict_to_json, json_to_tracks, json_to_vessels
 
 from datatypes.virtualCamera import VirtualCamera
 from dynamicSceneGenerator import DynamicSceneGenerator
+from datatypes.boundingBox import BoundingBox
 
 #########################################################
 #       Functionality for creating a dynamic scene with 
@@ -110,57 +111,87 @@ def project_all_points_from_json(camera, folder_path, writeToJson=True):
 #########################################################
 
 def create_bound_boxes_json(projected_points):
-    bbs = {}
+    bbs = []
     for vesselID, vessel_dict in projected_points.items():
         x_vals = list(map(lambda v : v['x'], vessel_dict.values()))
         y_vals = list(map(lambda v : v['y'], vessel_dict.values()))
+        depth_vals = list(map(lambda v : v['depth'], vessel_dict.values()))
         max_x = np.max(x_vals)
         min_x = np.min(x_vals)
         max_y = np.max(y_vals)
         min_y = np.min(y_vals)
         width = max_x-min_x
         height = max_y - min_y
-        center = [min_x+width/2, min_y+height/2]
-        #bb = np.array([[min_x,min_y],[min_x, max_y],[max_x, max_y],[max_x, min_y]]) 
-        bb = {'centre': {'x': center[0], 'y': center[1]}, 'height': height, 'width': width} 
+        centre = [min_x+width/2, min_y+height/2]
+        depth = np.average(depth_vals) #OBS which depth should we use
+        bounding_box = BoundingBox(vesselID, centre, width, height, depth)
         # Make sure these are in the correct order as in master thesis
-        bbs[vesselID] = bb
+        bbs.append(bounding_box)
     return bbs
 
 # NB! Might need change depending on the structure of projected points.
-def create_all_bbs_from_json(folder_path, writeToJson=False):
+def create_all_bbs_from_json(folder_path, occlusion=True, writeToJson=False):
     filepath = os.path.join(folder_path, 'projectedPoints.json')
     with open(filepath, 'r') as f:
         all_projected_points = json.load(f)
     all_bbs = {}
     for t in all_projected_points.keys():
-        all_bbs[t]=create_bound_boxes_json(all_projected_points[t])
-    if writeToJson:
-        bbs_to_json(all_bbs, folder_path)   
+        if occlusion:
+            all_bb=create_bound_boxes_json(all_projected_points[t])
+            all_bbs[t] = handle_covered_bbs(all_bb)
+        else:
+            all_bbs[t]=create_bound_boxes_json(all_projected_points[t])
+    if writeToJson and folder_path:
+        bbs_to_json(all_bbs, folder_path)
     return all_bbs
 
 def create_bound_boxes(projected_points):
-    bbs = {}
+    bbs = []
     for vesselID, vessel in projected_points.items():
-        x_vals = vessel[:, 0]
-        y_vals = vessel[:, 1]
-        max_x = np.max(x_vals)
-        min_x = np.min(x_vals)
-        max_y = np.max(y_vals)
-        min_y = np.min(y_vals)
-        width = max_x-min_x
-        height = max_y - min_y
-        center = [min_x+width/2, min_y+height/2]
-        #bb = np.array([[min_x,min_y],[min_x, max_y],[max_x, max_y],[max_x, min_y]]) 
-        bb = {'centre': {'x': center[0], 'y': center[1]}, 'height': height, 'width': width} 
-        # Make sure these are in the correct order as in master thesis
-        bbs[vesselID] = bb
+        if vessel.size > 0:
+            x_vals = np.array([point.image_coordinate[0] for point in vessel])
+            y_vals = np.array([point.image_coordinate[1] for point in vessel])
+            depth_vals = np.array([point.depth for point in vessel])
+            max_x = np.max(x_vals)
+            min_x = np.min(x_vals)
+            max_y = np.max(y_vals)
+            min_y = np.min(y_vals)
+            width = max_x-min_x
+            height = max_y - min_y
+            centre = [min_x+width/2, min_y+height/2]
+            depth = np.average(depth_vals) #OBS which depth should we use
+            bounding_box = BoundingBox(vesselID, centre, width, height, depth)
+            # Make sure these are in the correct order as in master thesis
+            bbs.append(bounding_box)
     return bbs
 
-def create_all_bbs(all_projected_points, writeToJson=False, folder_path=None):
+def handle_covered_bbs(bounding_boxes):
+    bbs = []
+    sorted_bbs = sorted(bounding_boxes, key=lambda bb: bb.depth, reverse=True)
+    for i in range(len(bounding_boxes)-1):
+        bb = sorted_bbs[i]
+        fully_covered = False
+        covering_bbs = []
+        for j in range(i+1, len(bounding_boxes)):
+            if bb.check_fully_covered(sorted_bbs[j]):
+                fully_covered = True
+            elif bb.check_overlap(sorted_bbs[j]):
+                covering_bbs.append(sorted_bbs[j])
+        if len(covering_bbs) > 0:
+            bb.update_bb_if_covered(covering_bbs)
+        if not fully_covered:
+            bbs.append(bb)
+    bbs.append(sorted_bbs[-1])
+    return bbs
+
+def create_all_bbs(all_projected_points, occlusion=True, writeToJson=False, folder_path=None):
     all_bbs = {}
     for t in all_projected_points.keys():
-        all_bbs[t]=create_bound_boxes(all_projected_points[t])
+        if occlusion:
+            all_bb=create_bound_boxes(all_projected_points[t])
+            all_bbs[t] = handle_covered_bbs(all_bb)
+        else:
+            all_bbs[t]=create_bound_boxes(all_projected_points[t])
     if writeToJson and folder_path:
         bbs_to_json(all_bbs, folder_path)
     return all_bbs
@@ -185,10 +216,12 @@ def vessels_to_json(vessels, path):
 
 def projectedPoints_to_json(projected_points, path):
     # All projected points will probably be on a different format. Did this to get a file.
-    projected_points_dict = {time_stamp: {vesselID: {cornerNumber: {'x': projected_points[time_stamp][vesselID][cornerNumber][0], 'y': projected_points[time_stamp][vesselID][cornerNumber][1], 'z': projected_points[time_stamp][vesselID][cornerNumber][2]} for cornerNumber in range(len(projected_points[time_stamp][vesselID]))} for vesselID in projected_points[time_stamp]} for time_stamp in projected_points.keys()}
+    projected_points_dict = {time_stamp: {vesselID: {cornerNumber: {'x': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[0], 'y': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[1], 'depth': projected_points[time_stamp][vesselID][cornerNumber].depth} for cornerNumber in range(len(projected_points[time_stamp][vesselID]))} for vesselID in projected_points[time_stamp]} for time_stamp in projected_points.keys()}
     filename = os.path.join(path, 'projectedPoints.json')
     dict_to_json(filename, projected_points_dict)
 
 def bbs_to_json(bbs, folder_path):
+    # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
+    bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs[time_stamp]} for time_stamp in bbs.keys()}
     save_path = os.path.join(folder_path, 'boundingBoxes.json')
-    dict_to_json(save_path, bbs) 
+    dict_to_json(save_path, bb_dict) 
