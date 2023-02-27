@@ -139,8 +139,8 @@ def plot_projections(projected_points, image_bounds, t, show_box, figsize=(6,6))
     '''
     _, ax = plt.subplots(figsize=figsize)
     for vessel in projected_points.values():
-        vessel_x = vessel[:,0]
-        vessel_y = vessel[:,1]
+        vessel_x = np.array([point.image_coordinate[0] for point in vessel])
+        vessel_y = np.array([point.image_coordinate[1] for point in vessel])
         ax.plot(vessel_x, vessel_y, 'o')
         # Order of cornerpoints (length, beam, height): 
         # Front back lower, back back lower, 
@@ -206,11 +206,12 @@ def visualize_projections(projected_points, image_bounds, show_box=True, folder_
 
 def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, figsize=(6,6)):
     _, ax = plt.subplots(figsize=figsize)
-    for vesselId, bb in bounding_boxes.items():
-        cx = bb['centre']['x']
-        cy = bb['centre']['y']
-        w = bb['width']
-        h = bb['height']
+    for i in range(len(bounding_boxes)):
+        bb = bounding_boxes[i]
+        cx = bb.centre[0]
+        cy = bb.centre[1]
+        w = bb.width
+        h = bb.height
         xs = [cx-w/2, cx-w/2, cx+w/2, cx+w/2, cx-w/2] 
         ys = [cy-h/2, cy+h/2, cy+h/2, cy-h/2, cy-h/2]
         ax.plot(xs, ys, '-')
@@ -218,9 +219,9 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
             if not projected_points:
                 print("Provide projected points when show projected points is true")
             else:
-                vessel_proj = projected_points[int(t)][vesselId]
-                x_vals = list(map(lambda v : v['x'], vessel_proj.values()))
-                y_vals = list(map(lambda v : v['y'], vessel_proj.values()))
+                vessel_proj = projected_points[t][i]
+                x_vals = np.array([point.image_coordinate[0] for point in vessel_proj])
+                y_vals = np.array([point.image_coordinate[1] for point in vessel_proj])
                 ax.plot(x_vals, y_vals, 'o')
 
     plt.xlim([0,image_bounds[0]])
