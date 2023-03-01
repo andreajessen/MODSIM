@@ -129,7 +129,7 @@ def visualize_camera_pose_in_dsg(camera, vessels, folder_path='./gifs', y_x_lim=
 #               Projection visualization
 #
 ###############################################################################################
-def plot_projections(projected_points, image_bounds, t, show_box, figsize=(6,6)):
+def plot_projections(projected_points, image_bounds, t, show_box, fastplot=False):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -137,7 +137,16 @@ def plot_projections(projected_points, image_bounds, t, show_box, figsize=(6,6))
     image_bounds (Tuple): x and y pixel boundaries
 
     '''
-    _, ax = plt.subplots(figsize=figsize)
+    if fastplot:
+        _, ax = plt.subplots()
+        fontsize = 10
+        ticks_fontsize = 8
+    else:
+        figsize = (image_bounds[0]/100, image_bounds[1]/100)
+        _, ax = plt.subplots(figsize=figsize)
+        fontsize = 28
+        ticks_fontsize = 24
+
     for vessel in projected_points.values():
         vessel_x = np.array([point.image_coordinate[0] for point in vessel])
         vessel_y = np.array([point.image_coordinate[1] for point in vessel])
@@ -157,16 +166,18 @@ def plot_projections(projected_points, image_bounds, t, show_box, figsize=(6,6))
 
     plt.xlim([0,image_bounds[0]])
     plt.ylim([image_bounds[1],0])
-    plt.ylabel('y', fontsize = 14)
+    plt.ylabel('y', fontsize = fontsize)
     ax.xaxis.tick_top()
-    ax.set_xlabel('x', fontsize = 14)    
+    ax.set_xlabel('x', fontsize = fontsize)    
     ax.xaxis.set_label_position('top') 
-    plt.title(f'Projected points at time {t}', fontsize=14)
+    plt.xticks(fontsize=ticks_fontsize)
+    plt.yticks(fontsize=ticks_fontsize)
+    plt.title(f'Projected points at time {t}', fontsize=fontsize)
     plt.savefig(f'./projectedPoints/projectedPoints_{t}.png', transparent = False,  facecolor = 'white')
     plt.close()
 
  # OLD Now the calculations are done here. Maybe we want to just send in a list with projected points with timestamps?
-def visualize_projections_calculate(vessels, camera, folder_path = './gifs', show_box=True):
+def visualize_projections_calculate(vessels, camera, folder_path = './gifs', show_box=True, fastplot=False):
     for i in range(len(vessels)-1):
         if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
             raise Exception("Points are not collected at the same time stamps")
@@ -174,7 +185,7 @@ def visualize_projections_calculate(vessels, camera, folder_path = './gifs', sho
     for t in vessels[0].get_track().get_time_stamps():
         points = [vessel.calculate_3D_cornerpoints(t) for vessel in vessels]
         projected_points = [camera.project_points(vessel_points) for vessel_points in points]
-        plot_projections(projected_points, camera.image_bounds, t, show_box)
+        plot_projections(projected_points, camera.image_bounds, t, show_box, fastplot)
 
     frames = []
     for t in vessels[0].get_track().get_time_stamps():
@@ -185,9 +196,9 @@ def visualize_projections_calculate(vessels, camera, folder_path = './gifs', sho
     imageio.mimsave(gif_path, frames, fps = 3, loop = 1)
 
 
-def visualize_projections(projected_points, image_bounds, show_box=True, folder_path='./gifs/', fps=3):
+def visualize_projections(projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3):
     for t in projected_points.keys():
-        plot_projections(projected_points[t], image_bounds, t, show_box)
+        plot_projections(projected_points[t], image_bounds, t, show_box, fastplot)
     
     frames = []
     for t in projected_points.keys():
@@ -204,8 +215,16 @@ def visualize_projections(projected_points, image_bounds, show_box=True, folder_
 #
 ###############################################################################################
 
-def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, figsize=(6,6)):
-    _, ax = plt.subplots(figsize=figsize)
+def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, fastplot=False):
+    if fastplot:
+        _, ax = plt.subplots()
+        fontsize = 10
+        ticks_fontsize = 8
+    else:
+        figsize = (image_bounds[0]/100, image_bounds[1]/100)
+        _, ax = plt.subplots(figsize=figsize)
+        fontsize = 28
+        ticks_fontsize = 24
     for i in range(len(bounding_boxes)):
         bb = bounding_boxes[i]
         cx = bb.centre[0]
@@ -226,18 +245,20 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
 
     plt.xlim([0,image_bounds[0]])
     plt.ylim([image_bounds[1],0])
-    plt.ylabel('y', fontsize = 14)
+    plt.ylabel('y', fontsize = fontsize)
     ax.xaxis.tick_top()
-    ax.set_xlabel('x', fontsize = 14)    
+    ax.set_xlabel('x', fontsize = fontsize)    
     ax.xaxis.set_label_position('top') 
-    plt.title(f'Bounding boxes at time {t}', fontsize=14)
+    plt.xticks(fontsize=ticks_fontsize)
+    plt.yticks(fontsize=ticks_fontsize)
+    plt.title(f'Bounding boxes at time {t}', fontsize=fontsize)
     plt.savefig(f'./boundingBoxes/boundingBoxes_{t}.png', transparent = False,  facecolor = 'white')
     plt.close()
 
 
-def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, folder_path='./gifs/', fps=3):
+def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3):
     for t in bounding_boxes.keys():
-        plot_bbs(bounding_boxes[t], image_bounds, t, projected_points, show_projected_points)
+        plot_bbs(bounding_boxes[t], image_bounds, t, projected_points, show_projected_points, fastplot)
     
     frames = []
     for t in bounding_boxes.keys():
