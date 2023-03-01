@@ -5,6 +5,26 @@ import os
 
 ###############################################################################################
 #
+#               Help functions for visualization
+#
+###############################################################################################
+plot_colors = ['blue','orange','green','red','purple','brown','pink','gray','olive','cyan']
+vesselID2Color = {}
+vessel_count = 0
+
+def get_color(vesselID):
+    global vesselID2Color
+    global vessel_count
+    global plot_colors
+    if vesselID in vesselID2Color.keys():
+        return vesselID2Color[vesselID]
+    color_index = vessel_count % len(plot_colors)
+    vessel_count += 1
+    vesselID2Color[vesselID] = plot_colors[color_index]
+    return vesselID2Color[vesselID]
+
+###############################################################################################
+#
 #               Dynamic scene visualization
 #
 ###############################################################################################
@@ -208,13 +228,8 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
     _, ax = plt.subplots(figsize=figsize)
     for i in range(len(bounding_boxes)):
         bb = bounding_boxes[i]
-        cx = bb.centre[0]
-        cy = bb.centre[1]
-        w = bb.width
-        h = bb.height
-        xs = [cx-w/2, cx-w/2, cx+w/2, cx+w/2, cx-w/2] 
-        ys = [cy-h/2, cy+h/2, cy+h/2, cy-h/2, cy-h/2]
-        ax.plot(xs, ys, '-')
+        xs, ys = bb.get_points_for_visualizing()
+        ax.plot(xs, ys, '-', color=get_color(bb.vesselID))
         if show_projected_points:
             if not projected_points:
                 print("Provide projected points when show projected points is true")
@@ -222,7 +237,7 @@ def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_p
                 vessel_proj = projected_points[t][i]
                 x_vals = np.array([point.image_coordinate[0] for point in vessel_proj])
                 y_vals = np.array([point.image_coordinate[1] for point in vessel_proj])
-                ax.plot(x_vals, y_vals, 'o')
+                ax.plot(x_vals, y_vals, 'o', color=get_color(bb.vesselID))
 
     plt.xlim([0,image_bounds[0]])
     plt.ylim([image_bounds[1],0])
@@ -245,4 +260,46 @@ def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None
         frames.append(image)
 
     gif_path = os.path.join(folder_path, 'boundingBoxes.gif')
+    imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
+
+###############################################################################################
+#
+#               Distorted Bounding box visualization
+#
+###############################################################################################
+
+def plot_distorted_bbs(distorted_bbs, image_bounds, t, original_BBs, show_original_BBS, figsize=(6,6)):
+    _, ax = plt.subplots(figsize=figsize)
+    if show_original_BBS:
+        if not original_BBs:
+            print("Provide original BBs when show original BBs is true")
+        else:
+            for bb in original_BBs[t]:
+                xs, ys = bb.get_points_for_visualizing()
+                ax.plot(xs, ys, '-', color='lightgrey')
+    for bb in distorted_bbs:
+        xs, ys = bb.get_points_for_visualizing()
+        ax.plot(xs, ys, '-', color=get_color(bb.vesselID))
+
+    plt.xlim([0,image_bounds[0]])
+    plt.ylim([image_bounds[1],0])
+    plt.ylabel('y', fontsize = 14)
+    ax.xaxis.tick_top()
+    ax.set_xlabel('x', fontsize = 14)    
+    ax.xaxis.set_label_position('top') 
+    plt.title(f'Distorted bounding boxes at time {t}', fontsize=14)
+    plt.savefig(f'./distortedBoundingBoxes/boundingBoxes_{t}.png', transparent = False,  facecolor = 'white')
+    plt.close()
+
+
+def visualize_distorted_bounding_boxes(distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3):
+    for t in distorted_bbs.keys():
+        plot_distorted_bbs(distorted_bbs[t], image_bounds, t, original_BBs, show_original_BBS)
+    
+    frames = []
+    for t in distorted_bbs.keys():
+        image = imageio.v2.imread(f'./distortedBoundingBoxes/boundingBoxes_{t}.png')
+        frames.append(image)
+
+    gif_path = os.path.join(folder_path, 'distortedBoundingBoxes.gif')
     imageio.mimsave(gif_path, frames, fps=fps, loop = 1)
