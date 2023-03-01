@@ -1,0 +1,18 @@
+errorStats:
+  sigma_cx: 30
+  mu_cx: 0
+
+  sigma_cy: 30 # Standard deviation
+  mu_cy: 0 # Expected value
+
+  sigma_h: 5 # Standard deviation
+  mu_h: 0 # Expected value
+
+  sigma_w: 5 # Standard deviation
+  mu_w: 0 # Expected value
+
+confusionMatrix:
+  FN: 0.2
+  FP: 0.2
+  TP: 0.8
+  TN: 0.8

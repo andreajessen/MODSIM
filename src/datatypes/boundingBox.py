@@ -108,3 +108,12 @@ class BoundingBox:
         sorted_bbs = sorted(covering_bbs, key=lambda bb: bb.depth, reverse=True)
         for i in range(len(sorted_bbs)):
             self.update_size_if_covered(sorted_bbs[i])
+    
+    def get_points_for_visualizing(self):
+        cx = self.centre[0]
+        cy = self.centre[1]
+        w = self.width
+        h = self.height
+        xs = [cx-w/2, cx-w/2, cx+w/2, cx+w/2, cx-w/2] 
+        ys = [cy-h/2, cy+h/2, cy+h/2, cy-h/2, cy-h/2]
+        return xs, ys
