@@ -289,8 +289,16 @@ def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None
 #
 ###############################################################################################
 
-def plot_distorted_bbs(distorted_bbs, image_bounds, t, original_BBs, show_original_BBS, figsize=(6,6)):
-    _, ax = plt.subplots(figsize=figsize)
+def plot_distorted_bbs(distorted_bbs, image_bounds, t, original_BBs, show_original_BBS, fastplot=False):
+    if fastplot:
+        _, ax = plt.subplots()
+        fontsize = 10
+        ticks_fontsize = 8
+    else:
+        figsize = (image_bounds[0]/100, image_bounds[1]/100)
+        _, ax = plt.subplots(figsize=figsize)
+        fontsize = 28
+        ticks_fontsize = 24
     if show_original_BBS:
         if not original_BBs:
             print("Provide original BBs when show original BBs is true")
@@ -304,18 +312,20 @@ def plot_distorted_bbs(distorted_bbs, image_bounds, t, original_BBs, show_origin
 
     plt.xlim([0,image_bounds[0]])
     plt.ylim([image_bounds[1],0])
-    plt.ylabel('y', fontsize = 14)
+    plt.ylabel('y', fontsize = fontsize)
     ax.xaxis.tick_top()
-    ax.set_xlabel('x', fontsize = 14)    
+    ax.set_xlabel('x', fontsize = fontsize) 
+    plt.xticks(fontsize=ticks_fontsize)
+    plt.yticks(fontsize=ticks_fontsize)   
     ax.xaxis.set_label_position('top') 
-    plt.title(f'Distorted bounding boxes at time {t}', fontsize=14)
+    plt.title(f'Distorted bounding boxes at time {t}', fontsize=fontsize)
     plt.savefig(f'./distortedBoundingBoxes/boundingBoxes_{t}.png', transparent = False,  facecolor = 'white')
     plt.close()
 
 
-def visualize_distorted_bounding_boxes(distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3):
+def visualize_distorted_bounding_boxes(distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False):
     for t in distorted_bbs.keys():
-        plot_distorted_bbs(distorted_bbs[t], image_bounds, t, original_BBs, show_original_BBS)
+        plot_distorted_bbs(distorted_bbs[t], image_bounds, t, original_BBs, show_original_BBS, fastplot=fastplot)
     
     frames = []
     for t in distorted_bbs.keys():
