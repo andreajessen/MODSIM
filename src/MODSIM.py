@@ -111,7 +111,7 @@ def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
 #       Functionality for creating ground truth BBs
 #########################################################
 
-def create_bound_boxes_json(projected_points):
+def create_bound_boxes_json(projected_points, image_bounds):
     bbs = []
     for vesselID, vessel_dict in projected_points.items():
         if vessel_dict:
@@ -122,33 +122,41 @@ def create_bound_boxes_json(projected_points):
             min_x = np.min(x_vals)
             max_y = np.max(y_vals)
             min_y = np.min(y_vals)
-            width = max_x-min_x
-            height = max_y - min_y
-            centre = [min_x+width/2, min_y+height/2]
-            depth = np.average(depth_vals) #OBS which depth should we use
-            bounding_box = BoundingBox(vesselID, centre, width, height, depth)
-            # Make sure these are in the correct order as in master thesis
-            if depth >= 0:
-                bbs.append(bounding_box)
+            if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
+                if max_x >= image_bounds[0]:
+                    max_x = image_bounds[0]
+                if min_x <= 0:
+                    min_x = 0
+                if max_y >= image_bounds[1]:
+                    max_y = image_bounds[1]
+                if min_y <= 0:
+                    min_y = 0
+                width = max_x-min_x
+                height = max_y - min_y
+                centre = [min_x+width/2, min_y+height/2]
+                depth = np.average(depth_vals) #OBS which depth should we use
+                bounding_box = BoundingBox(vesselID, centre, width, height, depth)
+                if depth >= 0:
+                    bbs.append(bounding_box)
     return bbs
 
 # NB! Might need change depending on the structure of projected points.
-def create_all_bbs_from_json(folder_path, occlusion=True, writeToJson=False):
+def create_all_bbs_from_json(folder_path, image_bounds, occlusion=True, writeToJson=False):
     filepath = os.path.join(folder_path, 'projectedPoints.json')
     with open(filepath, 'r') as f:
         all_projected_points = json.load(f)
     all_bbs = {}
     for t in all_projected_points.keys():
         if occlusion:
-            all_bb=create_bound_boxes_json(all_projected_points[t])
+            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
             all_bbs[t] = handle_covered_bbs(all_bb)
         else:
-            all_bbs[t]=create_bound_boxes_json(all_projected_points[t])
+            all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
     if writeToJson and folder_path:
         bbs_to_json(all_bbs, folder_path)
     return all_bbs
 
-def create_bound_boxes(projected_points):
+def create_bound_boxes(projected_points, image_bounds):
     bbs = []
     for vesselID, vessel in projected_points.items():
         if vessel.size > 0:
@@ -159,15 +167,28 @@ def create_bound_boxes(projected_points):
             min_x = np.min(x_vals)
             max_y = np.max(y_vals)
             min_y = np.min(y_vals)
-            width = max_x-min_x
-            height = max_y - min_y
-            centre = [min_x+width/2, min_y+height/2]
-            depth = np.average(depth_vals) #OBS which depth should we use
-            bounding_box = BoundingBox(vesselID, centre, width, height, depth)
-            # Make sure these are in the correct order as in master thesis
-            if depth >= 0:
-                bbs.append(bounding_box)
+            if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
+                if max_x >= image_bounds[0]:
+                    max_x = image_bounds[0]
+                if min_x <= 0:
+                    min_x = 0
+                if max_y >= image_bounds[1]:
+                    max_y = image_bounds[1]
+                if min_y <= 0:
+                    min_y = 0
+                width = max_x-min_x
+                height = max_y - min_y
+                centre = [min_x+width/2, min_y+height/2]
+                depth = np.average(depth_vals) #OBS which depth should we use
+                bounding_box = BoundingBox(vesselID, centre, width, height, depth)
+                if depth >= 0:
+                    bbs.append(bounding_box)
     return bbs
+
+def check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
+    if ((max_x <= image_bounds[0] and max_x >= 0) or (min_x <= image_bounds[0] and min_x >= 0)) and ((max_y <= image_bounds[1] and max_y >= 0) or (min_y <= image_bounds[1] and min_y >= 0)):
+        return True
+    return False
 
 def handle_covered_bbs(bounding_boxes):
     bbs = []
@@ -188,14 +209,14 @@ def handle_covered_bbs(bounding_boxes):
     bbs.append(sorted_bbs[-1])
     return bbs
 
-def create_all_bbs(all_projected_points, occlusion=True, writeToJson=False, folder_path=None):
+def create_all_bbs(all_projected_points, image_bounds, occlusion=True, writeToJson=False, folder_path=None):
     all_bbs = {}
     for t in all_projected_points.keys():
         if occlusion:
-            all_bb=create_bound_boxes(all_projected_points[t])
+            all_bb=create_bound_boxes(all_projected_points[t], image_bounds)
             all_bbs[t] = handle_covered_bbs(all_bb)
         else:
-            all_bbs[t]=create_bound_boxes(all_projected_points[t])
+            all_bbs[t]=create_bound_boxes(all_projected_points[t], image_bounds)
     if writeToJson and folder_path:
         bbs_to_json(all_bbs, folder_path)
     return all_bbs
