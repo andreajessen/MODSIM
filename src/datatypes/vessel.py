@@ -37,6 +37,14 @@ class Vessel():
     def get_length(self):
         return self.length
     
+    def get_air_draft(self):
+        return self.air_draft
+    
+    def get_rotation_matrix(self, time_stamp):
+        direction_vector = self.track.get_direction_vector(time_stamp) # Order of cornerpoints (length, beam): Front back, back back, back front, front front 
+        rotation_matrix = np.array([[direction_vector[0], -direction_vector[1], 0], [direction_vector[1], direction_vector[0], 0], [0, 0, 1]])
+        return rotation_matrix
+    
     def calculate_2D_cornerpoints(self, time_stamp):
         '''
         Calculates the cornerpoints of the vessel given a position and direction vector
