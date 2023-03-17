@@ -3,6 +3,7 @@ import json
 
 from datatypes.track import Track
 from datatypes.vessel import Vessel
+from datatypes.boundingBox import BoundingBox
 
 def find_path_to_next_simulation():
     arr = os.listdir('./simulations/')
@@ -36,7 +37,7 @@ def json_to_tracks(path):
             tracks[vessel].addPosition(position['center_position_m'][0], 
                                        position['center_position_m'][1], 
                                        position['center_position_m'][2], 
-                                       position['heading_rad'], int(t))
+                                       position['heading_rad'], float(t))
     return tracks
 
 def json_to_vessels(path):
@@ -55,3 +56,17 @@ def json_to_vessels(path):
 
 
 
+def json_to_bb(path):
+    '''
+    Loads the BB json file and creates a list 
+    of corresponding BB classes
+    Input:
+        Path (string): path to track file
+    Output:
+        BBs (list of BoundingBoxes)
+    '''
+    with open(path, 'r') as f:
+        bb_dict = json.load(f)
+    # (self, vesselID, centre, width, height, depth)
+    bbs = {key: [BoundingBox(vesselID, (bb['centre']['x'], bb['centre']['y']), bb['height'], bb['width'], bb['depth']) for vesselID, bb in vessels.items()] for key, vessels in bb_dict.items()}
+    return bbs
