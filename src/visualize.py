@@ -27,13 +27,13 @@ def get_color(vesselID):
     vessel_count += 1
     vesselID2Color[vesselID] = plot_colors[color_index]
     return vesselID2Color[vesselID]
-
+ 
 ###############################################################################################
 #
 #               Dynamic scene visualization
 #
 ###############################################################################################
-def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3):
+def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3, skip=0, max_duration=None):
     '''
     Creates the plot image for the given time step
     Input:
@@ -51,6 +51,7 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
         # the idiot FPS in videoClip that you can't change!!!!!
         temp = (int(idiot_time%1*10)-6)/3-1
         time_index = int((int(idiot_time)+1)*3+temp)
+        time_index = time_index if skip == 0 else time_index*skip
 
         # Get time stamp
         t = time_stamps[time_index]
@@ -82,6 +83,10 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
         return mplfig_to_npimage(fig)
     # creating animation
     duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    if max_duration and max_duration/3<duration:
+        duration = max_duration/3
+    if skip !=0:
+        duration = duration/skip
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'dynamicScene.mp4')
     animation.write_videofile(gif_path,fps=fps)
@@ -152,8 +157,7 @@ def plot_dynamic_scene_t(t, vessels=None, figsize=None, y_x_lim=None):
 #               Camera position visualization
 #
 ###############################################################################################
-
-def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3):
+def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3, skip=0, max_duration=None):
     '''
     Creates the plot image for the given time step
     Input:
@@ -172,6 +176,8 @@ def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_
         # the idiot FPS in videoClip that you can't change!!!!!
         temp = (int(idiot_time%1*10)-6)/3-1
         time_index = int((int(idiot_time)+1)*3+temp)
+        time_index = time_index if skip == 0 else time_index*skip
+
 
         # Get time stamp
         t = time_stamps[time_index]
@@ -209,6 +215,10 @@ def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_
         return mplfig_to_npimage(fig)
     # creating animation
     duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    if max_duration and max_duration/3<duration:
+        duration = max_duration/3
+    if skip != 0:
+        duration = duration/skip
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'camera_position.mp4')
     animation.write_videofile(gif_path,fps=fps)
@@ -271,7 +281,7 @@ def visualize_camera_pose_in_dsg(camera_rig, vessels, folder_path='./gifs', y_x_
 #               Projection visualization
 #
 ###############################################################################################
-def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3):
+def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -297,6 +307,7 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         # the idiot FPS in videoClip that you can't change!!!!!
         temp = (int(idiot_time%1*10)-6)/3-1
         time_index = int((int(idiot_time)+1)*3+temp)
+        time_index = time_index if skip == 0 else time_index*skip
 
         # Get time stamp
         t = time_stamps[time_index]
@@ -334,6 +345,10 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         return mplfig_to_npimage(fig)
     # creating animation
     duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    if max_duration and max_duration/3<duration:
+        duration = max_duration/3
+    if skip !=0:
+        duration = duration/skip
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'projected_points.mp4')
     animation.write_videofile(gif_path,fps=fps)
@@ -425,7 +440,7 @@ def visualize_projections(projected_points, image_bounds, show_box=True, fastplo
 #
 ###############################################################################################
 
-def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3):
+def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -443,7 +458,7 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
         fontsize = 28
         ticks_fontsize = 24
 
-    time_stamps = [int(x) for x in list(all_bounding_boxes.keys())]
+    time_stamps = [float(x) for x in list(all_bounding_boxes.keys())]
     time_stamps.sort()
 
     def make_frame(idiot_time):
@@ -451,6 +466,8 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
         # the idiot FPS in videoClip that you can't change!!!!!
         temp = (int(idiot_time%1*10)-6)/3-1
         time_index = int((int(idiot_time)+1)*3+temp)
+        time_index = time_index if skip == 0 else time_index*skip
+
 
         # Get time stamp
         t = time_stamps[time_index]
@@ -484,6 +501,10 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
         return mplfig_to_npimage(fig)
     # creating animation
     duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    if max_duration and max_duration/3<duration:
+        duration = max_duration/3
+    if skip !=0:
+        duration = duration/skip
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'boundingBoxes.mp4')
     animation.write_videofile(gif_path,fps=fps)
@@ -542,7 +563,7 @@ def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None
 #
 ###############################################################################################
 
-def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False):
+def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False, skip=0, max_duration=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -560,7 +581,7 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
         fontsize = 28
         ticks_fontsize = 24
 
-    time_stamps = [int(x) for x in list(all_distorted_bbs.keys())]
+    time_stamps = [float(x) for x in list(all_distorted_bbs.keys())]
     time_stamps.sort()
 
     def make_frame(idiot_time):
@@ -568,6 +589,7 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
         # the idiot FPS in videoClip that you can't change!!!!!
         temp = (int(idiot_time%1*10)-6)/3-1
         time_index = int((int(idiot_time)+1)*3+temp)
+        time_index = time_index if skip == 0 else time_index*skip
 
         # Get time stamp
         t = time_stamps[time_index]
@@ -598,6 +620,10 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
         return mplfig_to_npimage(fig)
     # creating animation
     duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    if max_duration and max_duration/3<duration:
+        duration = max_duration/3
+    if skip !=0:
+        duration = duration/skip
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'distortedBoundingBoxes.mp4')
     animation.write_videofile(gif_path,fps=fps)

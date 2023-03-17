@@ -2,11 +2,12 @@ import numpy as np
 import json
 import os
 
-from utils import dict_to_json, json_to_tracks, json_to_vessels
+from utils import dict_to_json, json_to_tracks, json_to_vessels, json_to_bb
 
 from datatypes.virtualCamera import VirtualCamera
 from dynamicSceneGenerator import DynamicSceneGenerator
 from datatypes.boundingBox import BoundingBox
+from errorGenerator import ErrorGenerator
 
 #########################################################
 #       Functionality for creating a dynamic scene with 
@@ -250,3 +251,21 @@ def bbs_to_json(bbs, folder_path):
     bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs[time_stamp]} for time_stamp in bbs.keys()}
     save_path = os.path.join(folder_path, 'boundingBoxes.json')
     dict_to_json(save_path, bb_dict) 
+
+def error_bbs_to_json(error_bbs, folder_path):
+    # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
+    error_bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs[time_stamp]} for time_stamp in error_bbs.keys()}
+    save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
+    dict_to_json(save_path, error_bb_dict)
+
+
+
+#########################################################
+#       Functions for error generation
+#########################################################
+def create_distorted_bbs_from_json(detector_stats_path, bb_path, writeToJson=False, folder_path=None):
+    all_bbs = json_to_bb(bb_path)
+    errorGenerator = ErrorGenerator(detector_stats_path)
+    errorBBs = errorGenerator.generate_all_error_BBs(all_bbs)
+    if writeToJson and folder_path:
+        error_bbs_to_json(errorBBs, folder_path)
