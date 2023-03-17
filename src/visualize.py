@@ -153,7 +153,7 @@ def plot_dynamic_scene_t(t, vessels=None, figsize=None, y_x_lim=None):
 #
 ###############################################################################################
 
-def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3):
+def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3):
     '''
     Creates the plot image for the given time step
     Input:
@@ -163,7 +163,7 @@ def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_
     - y_x_lim (int): limitation of x and y axis
     '''
     if not y_x_lim:
-        y_x_lim = camera.position_WRF[0] + 50
+        y_x_lim = camera_rig.get_camera_position(0)[0] + 50
     fig, ax = plt.subplots(figsize=figsize)
     time_stamps = vessels[0].get_track().get_time_stamps()
 
@@ -192,8 +192,8 @@ def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_
             ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
             ax.plot(xs, ys, 'b-')
         
-        camera_position = camera.get_position()
-        camera_orientation = camera.get_orientation_vector()
+        camera_position = camera_rig.get_camera_position(t)
+        camera_orientation = camera_rig.get_camera_orientation(t)
         ax.plot(camera_position[0], camera_position[1], 'ro')
         ax.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
 
@@ -305,15 +305,15 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         ax.clear()
 
         for vessel in projected_points.values():
-            vessel_x = np.array([point.image_coordinate[0] for point in vessel])
-            vessel_y = np.array([point.image_coordinate[1] for point in vessel])
+            vessel_x = np.array([point.image_coordinate[0] for point in vessel if point.depth>=0])
+            vessel_y = np.array([point.image_coordinate[1] for point in vessel if point.depth>=0])
             ax.plot(vessel_x, vessel_y, 'o')
             # Order of cornerpoints (length, beam, height): 
             # Front back lower, back back lower, 
             # back front lower, front front lower, 
             # Front back upper, back back upper, 
             # back front upper, front front upper,
-            if show_box:
+            if show_box and vessel_x.size == 8:
                 xs = list(vessel_x[0:4])+[vessel_x[0]]+list(vessel_x[4:])+[vessel_x[4]]
                 ys = list(vessel_y[0:4])+[vessel_y[0]]+list(vessel_y[4:])+[vessel_y[4]]
                 ax.plot(xs, ys, 'b-')
