@@ -152,6 +152,7 @@ def plot_dynamic_scene_t(t, vessels=None, figsize=None, y_x_lim=None):
 #               Camera position visualization
 #
 ###############################################################################################
+
 def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3):
     '''
     Creates the plot image for the given time step
@@ -211,12 +212,10 @@ def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'camera_position.mp4')
     animation.write_videofile(gif_path,fps=fps)
-
-
-def visualize_camera_pose_t(t, camera, vessels, y_x_lim=None, figsize=(6,6)):
-
+    
+def visualize_camera_pose_t(t, camera_rig, vessels, y_x_lim=None, figsize=(6,6)):
     if not y_x_lim:
-        y_x_lim = camera.position_WRF[0] + 50
+        y_x_lim = camera_rig.get_camera_position(t)[0] + 50
     _ = plt.figure(figsize=figsize)
     for vessel in vessels:
         track = vessel.get_track().get_track_dict()
@@ -239,8 +238,8 @@ def visualize_camera_pose_t(t, camera, vessels, y_x_lim=None, figsize=(6,6)):
         ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
         plt.plot(xs, ys, 'b-')
     
-    camera_position = camera.get_position()
-    camera_orientation = camera.get_orientation_vector()
+    camera_position = camera_rig.get_camera_position(t)
+    camera_orientation = camera_rig.get_camera_orientation(t)
     plt.plot(camera_position[0], camera_position[1], 'ro')
     plt.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
     plt.xlabel('x', fontsize = 14)
@@ -253,10 +252,10 @@ def visualize_camera_pose_t(t, camera, vessels, y_x_lim=None, figsize=(6,6)):
     plt.savefig(f'./cameraPosition/cameraPosition_{t}.png', transparent = False,  facecolor = 'white')
     plt.close()
 
-def visualize_camera_pose_in_dsg(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6)):
+def visualize_camera_pose_in_dsg(camera_rig, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6)):
     time_steps = vessels[0].get_track().get_time_stamps()
     for t in time_steps:
-        visualize_camera_pose_t(t, camera, vessels, y_x_lim, figsize)
+        visualize_camera_pose_t(t, camera_rig, vessels, y_x_lim, figsize)
     
     frames=[]
     for t in time_steps:
@@ -360,15 +359,15 @@ def plot_projections(projected_points, image_bounds, t, show_box, fastplot=False
         ticks_fontsize = 24
 
     for vessel in projected_points.values():
-        vessel_x = np.array([point.image_coordinate[0] for point in vessel])
-        vessel_y = np.array([point.image_coordinate[1] for point in vessel])
+        vessel_x = np.array([point.image_coordinate[0] for point in vessel if point.depth>=0])
+        vessel_y = np.array([point.image_coordinate[1] for point in vessel if point.depth>=0])
         ax.plot(vessel_x, vessel_y, 'o')
         # Order of cornerpoints (length, beam, height): 
         # Front back lower, back back lower, 
         # back front lower, front front lower, 
         # Front back upper, back back upper, 
         # back front upper, front front upper,
-        if show_box:
+        if show_box and vessel_x.size == 8:
             xs = list(vessel_x[0:4])+[vessel_x[0]]+list(vessel_x[4:])+[vessel_x[4]]
             ys = list(vessel_y[0:4])+[vessel_y[0]]+list(vessel_y[4:])+[vessel_y[4]]
             ax.plot(xs, ys, 'b-')
