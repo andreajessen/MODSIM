@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 import imageio
 import numpy as np
 import os
+from multiprocessing import Pool
+from functools import partial
+# importing movie py libraries
+from moviepy.editor import VideoClip
+from moviepy.video.io.bindings import mplfig_to_npimage
 
 ###############################################################################################
 #
@@ -28,6 +33,59 @@ def get_color(vesselID):
 #               Dynamic scene visualization
 #
 ###############################################################################################
+def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3):
+    '''
+    Creates the plot image for the given time step
+    Input:
+    - t (int): current time step
+    - vessels (array): List of vessels in the scene
+    - figsize (int): Size of figure
+    - y_x_lim (int): limitation of x and y axis
+    '''
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    time_stamps = vessels[0].get_track().get_time_stamps()
+
+    def make_frame(idiot_time):
+        # Some hack to fix the time stamp index because of
+        # the idiot FPS in videoClip that you can't change!!!!!
+        temp = (int(idiot_time%1*10)-6)/3-1
+        time_index = int((int(idiot_time)+1)*3+temp)
+
+        # Get time stamp
+        t = time_stamps[time_index]
+
+        # Clear
+        ax.clear()
+
+        # Plot
+        ax.set_xlim([0,y_x_lim])
+        ax.set_xlabel('x', fontsize = 14)
+        ax.set_ylim([0,y_x_lim])
+        ax.set_ylabel('y', fontsize = 14)
+        ax.set_title(f'Relationship between x and y at step {t}', fontsize=14)
+        for vessel in vessels:
+            track = vessel.get_track().get_track_dict()
+            points = np.array([[track[time]['center_position_m'][0], track[time]['center_position_m'][1]] for time in sorted(track.keys()) if time <= t])
+            x = points[:, 0]
+            y = points[:, 1]
+            ax.plot(x, y)
+            #plt.plot(x[t], y[t], marker = 'o' )
+            # Create square plot for shape of vessel
+            #position = np.array([x[t], y[t]])
+            #direction_vector = track.get_direction_vector(t)
+            cornerpoints = vessel.calculate_2D_cornerpoints(t)
+            xs = list(cornerpoints[:,0])+[cornerpoints[:,0][0]]
+            ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
+            ax.plot(xs, ys, 'b-')
+        # returning numpy image
+        return mplfig_to_npimage(fig)
+    # creating animation
+    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    animation = VideoClip(make_frame, duration = duration)
+    gif_path = os.path.join(folder_path, 'dynamicScene.mp4')
+    animation.write_videofile(gif_path,fps=fps)
+
 
 def visualize_dynamic_scene(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3):
     '''
@@ -38,12 +96,16 @@ def visualize_dynamic_scene(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_
     - y_x_lim (int): limitation of x and y axis
     - fps (int): frames per second in the gif
     '''
-    for i in range(len(vessels)-1):
-        if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
-            raise Exception("Points are not collected at the same time stamps")
+    #for i in range(len(vessels)-1):
+    #    if vessels[i].get_track().get_time_stamps() != vessels[i+1].get_track().get_time_stamps():
+    #        raise Exception("Points are not collected at the same time stamps")
 
-    for t in vessels[0].get_track().get_time_stamps():
-        plot_dynamic_scene_t(t, vessels, figsize, y_x_lim)
+    time_stamps = vessels[0].get_track().get_time_stamps()
+    with Pool() as p:
+        p.map(partial(plot_dynamic_scene_t, vessels=vessels, figsize=figsize, y_x_lim=y_x_lim), time_stamps)
+        # p.starmap(plot_dynamic_scene_t, zip(time_stamps, vessels, figsize, y_x_lim))
+    #for t in vessels[0].get_track().get_time_stamps():
+    #    plot_dynamic_scene_t(t, vessels, figsize, y_x_lim)
     
     frames = []
     for t in vessels[0].get_track().get_time_stamps():
@@ -53,7 +115,7 @@ def visualize_dynamic_scene(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_
     imageio.mimsave(gif_path, frames, fps = fps, loop = 1)
 
 
-def plot_dynamic_scene_t(t, vessels, figsize, y_x_lim):
+def plot_dynamic_scene_t(t, vessels=None, figsize=None, y_x_lim=None):
     '''
     Creates the plot image for the given time step
     Input:
@@ -90,8 +152,68 @@ def plot_dynamic_scene_t(t, vessels, figsize, y_x_lim):
 #               Camera position visualization
 #
 ###############################################################################################
-def visualize_camera_pose_t(t, camera_rig, vessels, y_x_lim=None, figsize=(6,6)):
 
+def visualize_camera_pose_in_dsg_mov(camera, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3):
+    '''
+    Creates the plot image for the given time step
+    Input:
+    - t (int): current time step
+    - vessels (array): List of vessels in the scene
+    - figsize (int): Size of figure
+    - y_x_lim (int): limitation of x and y axis
+    '''
+    if not y_x_lim:
+        y_x_lim = camera.position_WRF[0] + 50
+    fig, ax = plt.subplots(figsize=figsize)
+    time_stamps = vessels[0].get_track().get_time_stamps()
+
+    def make_frame(idiot_time):
+        # Some hack to fix the time stamp index because of
+        # the idiot FPS in videoClip that you can't change!!!!!
+        temp = (int(idiot_time%1*10)-6)/3-1
+        time_index = int((int(idiot_time)+1)*3+temp)
+
+        # Get time stamp
+        t = time_stamps[time_index]
+
+        # Clear
+        ax.clear()
+
+        # Plot
+        for vessel in vessels:
+            track = vessel.get_track().get_track_dict()
+            points = np.array([[track[time]['center_position_m'][0], track[time]['center_position_m'][1]] for time in sorted(track.keys()) if time <= t])
+            x = points[:, 0]
+            y = points[:, 1]
+            ax.plot(x, y)
+
+            cornerpoints = vessel.calculate_2D_cornerpoints(t)
+            xs = list(cornerpoints[:,0])+[cornerpoints[:,0][0]]
+            ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
+            ax.plot(xs, ys, 'b-')
+        
+        camera_position = camera.get_position()
+        camera_orientation = camera.get_orientation_vector()
+        ax.plot(camera_position[0], camera_position[1], 'ro')
+        ax.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
+
+        x_lim = max(camera_position[0]+10, y_x_lim)
+        y_lim = max(camera_position[1]+10, y_x_lim)
+        ax.set_xlim([0,x_lim])
+        ax.set_xlabel('x', fontsize = 14)
+        ax.set_ylim([0,y_lim])
+        ax.set_ylabel('y', fontsize = 14)
+        ax.set_title(f'Camera position in scene {t}', fontsize=14)
+
+        # returning numpy image
+        return mplfig_to_npimage(fig)
+    # creating animation
+    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    animation = VideoClip(make_frame, duration = duration)
+    gif_path = os.path.join(folder_path, 'camera_position.mp4')
+    animation.write_videofile(gif_path,fps=fps)
+    
+def visualize_camera_pose_t(t, camera_rig, vessels, y_x_lim=None, figsize=(6,6)):
     if not y_x_lim:
         y_x_lim = camera_rig.get_camera_position(t)[0] + 50
     _ = plt.figure(figsize=figsize)
@@ -149,6 +271,75 @@ def visualize_camera_pose_in_dsg(camera_rig, vessels, folder_path='./gifs', y_x_
 #               Projection visualization
 #
 ###############################################################################################
+def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3):
+    '''
+    Input:
+    projected_points (List): List of lists of points for each vessel
+    figsize (int): Size of figure
+    image_bounds (Tuple): x and y pixel boundaries
+
+    '''
+    if fastplot:
+        fig, ax = plt.subplots()
+        fontsize = 10
+        ticks_fontsize = 8
+    else:
+        figsize = (image_bounds[0]/200, image_bounds[1]/200)
+        fig, ax = plt.subplots(figsize=figsize)
+        fontsize = 28
+        ticks_fontsize = 24
+
+    time_stamps = list(all_projected_points.keys())
+    time_stamps.sort()
+
+    def make_frame(idiot_time):
+        # Some hack to fix the time stamp index because of
+        # the idiot FPS in videoClip that you can't change!!!!!
+        temp = (int(idiot_time%1*10)-6)/3-1
+        time_index = int((int(idiot_time)+1)*3+temp)
+
+        # Get time stamp
+        t = time_stamps[time_index]
+        projected_points = all_projected_points[t]
+        # Clear
+        ax.clear()
+
+        for vessel in projected_points.values():
+            vessel_x = np.array([point.image_coordinate[0] for point in vessel])
+            vessel_y = np.array([point.image_coordinate[1] for point in vessel])
+            ax.plot(vessel_x, vessel_y, 'o')
+            # Order of cornerpoints (length, beam, height): 
+            # Front back lower, back back lower, 
+            # back front lower, front front lower, 
+            # Front back upper, back back upper, 
+            # back front upper, front front upper,
+            if show_box:
+                xs = list(vessel_x[0:4])+[vessel_x[0]]+list(vessel_x[4:])+[vessel_x[4]]
+                ys = list(vessel_y[0:4])+[vessel_y[0]]+list(vessel_y[4:])+[vessel_y[4]]
+                ax.plot(xs, ys, 'b-')
+                ax.plot([vessel_x[1], vessel_x[5]], [vessel_y[1], vessel_y[5]], 'b-')
+                ax.plot([vessel_x[2], vessel_x[6]], [vessel_y[2], vessel_y[6]], 'b-')
+                ax.plot([vessel_x[3], vessel_x[7]], [vessel_y[3], vessel_y[7]], 'b-')
+        
+        ax.set_xlim([0,image_bounds[0]])
+        ax.set_ylim([image_bounds[1],0])
+        ax.set_ylabel('y', fontsize = fontsize)
+        ax.xaxis.tick_top()
+        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.xaxis.set_label_position('top') 
+        ax.tick_params(labelsize=ticks_fontsize)
+        ax.set_title(f'Projected points at time {t}', fontsize=fontsize)
+
+        # returning numpy image
+        return mplfig_to_npimage(fig)
+    # creating animation
+    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    animation = VideoClip(make_frame, duration = duration)
+    gif_path = os.path.join(folder_path, 'projected_points.mp4')
+    animation.write_videofile(gif_path,fps=fps)
+
+
+
 def plot_projections(projected_points, image_bounds, t, show_box, fastplot=False):
     '''
     Input:
@@ -162,7 +353,7 @@ def plot_projections(projected_points, image_bounds, t, show_box, fastplot=False
         fontsize = 10
         ticks_fontsize = 8
     else:
-        figsize = (image_bounds[0]/100, image_bounds[1]/100)
+        figsize = (image_bounds[0]/200, image_bounds[1]/200)
         _, ax = plt.subplots(figsize=figsize)
         fontsize = 28
         ticks_fontsize = 24
@@ -215,7 +406,6 @@ def visualize_projections_calculate(vessels, camera, folder_path = './gifs', sho
     gif_path = os.path.join(folder_path,'projected_point.gif')
     imageio.mimsave(gif_path, frames, fps = 3, loop = 1)
 
-
 def visualize_projections(projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3):
     for t in projected_points.keys():
         plot_projections(projected_points[t], image_bounds, t, show_box, fastplot)
@@ -234,6 +424,69 @@ def visualize_projections(projected_points, image_bounds, show_box=True, fastplo
 #               Bounding box visualization
 #
 ###############################################################################################
+
+def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3):
+    '''
+    Input:
+    projected_points (List): List of lists of points for each vessel
+    figsize (int): Size of figure
+    image_bounds (Tuple): x and y pixel boundaries
+
+    '''
+    if fastplot:
+        fig, ax = plt.subplots()
+        fontsize = 10
+        ticks_fontsize = 8
+    else:
+        figsize = (image_bounds[0]/200, image_bounds[1]/200)
+        fig, ax = plt.subplots(figsize=figsize)
+        fontsize = 28
+        ticks_fontsize = 24
+
+    time_stamps = [int(x) for x in list(all_bounding_boxes.keys())]
+    time_stamps.sort()
+
+    def make_frame(idiot_time):
+        # Some hack to fix the time stamp index because of
+        # the idiot FPS in videoClip that you can't change!!!!!
+        temp = (int(idiot_time%1*10)-6)/3-1
+        time_index = int((int(idiot_time)+1)*3+temp)
+
+        # Get time stamp
+        t = time_stamps[time_index]
+        bounding_boxes = all_bounding_boxes[str(t)]
+        # Clear
+        ax.clear()
+
+        for i in range(len(bounding_boxes)):
+            bb = bounding_boxes[i]
+            xs, ys = bb.get_points_for_visualizing()
+            ax.plot(xs, ys, '-', color=get_color(bb.vesselID))
+            if show_projected_points:
+                if not projected_points:
+                    print("Provide projected points when show projected points is true")
+                else:
+                    vessel_proj = projected_points[t][i]
+                    x_vals = np.array([point.image_coordinate[0] for point in vessel_proj])
+                    y_vals = np.array([point.image_coordinate[1] for point in vessel_proj])
+                    ax.plot(x_vals, y_vals, 'o', color=get_color(bb.vesselID))
+        
+        ax.set_xlim([0,image_bounds[0]])
+        ax.set_ylim([image_bounds[1],0])
+        ax.set_ylabel('y', fontsize = fontsize)
+        ax.xaxis.tick_top()
+        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.xaxis.set_label_position('top') 
+        ax.tick_params(labelsize=ticks_fontsize)
+        ax.set_title(f'Bounding boxes at time {t}', fontsize=fontsize)
+
+        # returning numpy image
+        return mplfig_to_npimage(fig)
+    # creating animation
+    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    animation = VideoClip(make_frame, duration = duration)
+    gif_path = os.path.join(folder_path, 'boundingBoxes.mp4')
+    animation.write_videofile(gif_path,fps=fps)
 
 def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, fastplot=False):
     if fastplot:
@@ -288,6 +541,66 @@ def visualize_bounding_boxes(bounding_boxes, image_bounds, projected_points=None
 #               Distorted Bounding box visualization
 #
 ###############################################################################################
+
+def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False):
+    '''
+    Input:
+    projected_points (List): List of lists of points for each vessel
+    figsize (int): Size of figure
+    image_bounds (Tuple): x and y pixel boundaries
+
+    '''
+    if fastplot:
+        fig, ax = plt.subplots()
+        fontsize = 10
+        ticks_fontsize = 8
+    else:
+        figsize = (image_bounds[0]/200, image_bounds[1]/200)
+        fig, ax = plt.subplots(figsize=figsize)
+        fontsize = 28
+        ticks_fontsize = 24
+
+    time_stamps = [int(x) for x in list(all_distorted_bbs.keys())]
+    time_stamps.sort()
+
+    def make_frame(idiot_time):
+        # Some hack to fix the time stamp index because of
+        # the idiot FPS in videoClip that you can't change!!!!!
+        temp = (int(idiot_time%1*10)-6)/3-1
+        time_index = int((int(idiot_time)+1)*3+temp)
+
+        # Get time stamp
+        t = time_stamps[time_index]
+        distorted_bbs = all_distorted_bbs[str(t)]
+        # Clear
+        ax.clear()
+        if show_original_BBS:
+            if not original_BBs:
+                print("Provide original BBs when show original BBs is true")
+            else:
+                for bb in original_BBs[str(t)]:
+                    xs, ys = bb.get_points_for_visualizing()
+                    ax.plot(xs, ys, '-', color='lightgrey')
+        for bb in distorted_bbs:
+            xs, ys = bb.get_points_for_visualizing()
+            ax.plot(xs, ys, '-', color=get_color(bb.vesselID))
+        
+        ax.set_xlim([0,image_bounds[0]])
+        ax.set_ylim([image_bounds[1],0])
+        ax.set_ylabel('y', fontsize = fontsize)
+        ax.xaxis.tick_top()
+        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.xaxis.set_label_position('top') 
+        ax.tick_params(labelsize=ticks_fontsize)
+        ax.set_title(f'Distorted bounding boxes at time {t}', fontsize=fontsize)
+
+        # returning numpy image
+        return mplfig_to_npimage(fig)
+    # creating animation
+    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
+    animation = VideoClip(make_frame, duration = duration)
+    gif_path = os.path.join(folder_path, 'distortedBoundingBoxes.mp4')
+    animation.write_videofile(gif_path,fps=fps)
 
 def plot_distorted_bbs(distorted_bbs, image_bounds, t, original_BBs, show_original_BBS, fastplot=False):
     if fastplot:
