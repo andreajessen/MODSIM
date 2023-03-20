@@ -26,7 +26,7 @@ names:
 - jetski
 - ro_ro_vessel
 nc: 26
-path: ../../../datasets/data/hurtigruten
+path: /cluster/home/solveijm/hurtigruten/
 test: test.txt
 train: train.txt
 val: val.txt
