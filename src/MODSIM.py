@@ -142,16 +142,26 @@ def create_bound_boxes_json(projected_points, image_bounds):
     return bbs
 
 # NB! Might need change depending on the structure of projected points.
-def create_all_bbs_from_json(folder_path, image_bounds, occlusion=True, writeToJson=False):
+def create_all_bbs_from_json(folder_path, image_bounds, annotation_mode=0, writeToJson=False):
     filepath = os.path.join(folder_path, 'projectedPoints.json')
     with open(filepath, 'r') as f:
         all_projected_points = json.load(f)
     all_bbs = {}
     for t in all_projected_points.keys():
-        if occlusion:
+        if annotation_mode == 1:
+            # Only remove fully covered
             all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            all_bbs[t] = handle_covered_bbs(all_bb)
+            if len(all_bb) > 1: 
+                all_bb = handle_covered_bbs(all_bb, annotation_mode)
+            all_bbs[t] = all_bb
+        elif annotation_mode == 2:
+            # Cut partially covered bbs
+            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
+            if len(all_bb) > 1: 
+                all_bb = handle_covered_bbs(all_bb, annotation_mode)
+            all_bbs[t] = all_bb
         else:
+            # No occlusion handling
             all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
     if writeToJson and folder_path:
         bbs_to_json(all_bbs, folder_path)
@@ -191,7 +201,7 @@ def check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
         return True
     return False
 
-def handle_covered_bbs(bounding_boxes):
+def handle_covered_bbs(bounding_boxes, annotation_mode):
     bbs = []
     sorted_bbs = sorted(bounding_boxes, key=lambda bb: bb.depth, reverse=True)
     for i in range(len(bounding_boxes)-1):
@@ -201,7 +211,7 @@ def handle_covered_bbs(bounding_boxes):
         for j in range(i+1, len(bounding_boxes)):
             if bb.check_fully_covered(sorted_bbs[j]):
                 fully_covered = True
-            elif bb.check_overlap(sorted_bbs[j]):
+            elif bb.check_overlap(sorted_bbs[j]) and annotation_mode==2:
                 covering_bbs.append(sorted_bbs[j])
         if len(covering_bbs) > 0:
             bb.update_bb_if_covered(covering_bbs)
