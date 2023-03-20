@@ -3,4 +3,7 @@ split:
   val: 0.15
   test: 0.15
 
-dataset_src_dir: ./hurtigruten
+dataset_src_dir: ../../../datasets/data/hurtigruten
+train: train.txt  # train images (relative to 'path') 
+val: val.txt  # val images (relative to 'path')
+test:  test.txt # test images (optional)
