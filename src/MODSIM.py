@@ -220,14 +220,24 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
     bbs.append(sorted_bbs[-1])
     return bbs
 
-def create_all_bbs(all_projected_points, image_bounds, occlusion=True, writeToJson=False, folder_path=None):
+def create_all_bbs(all_projected_points, image_bounds, annotation_mode=0, writeToJson=False, folder_path=None):
     all_bbs = {}
     for t in all_projected_points.keys():
-        if occlusion:
-            all_bb=create_bound_boxes(all_projected_points[t], image_bounds)
-            all_bbs[t] = handle_covered_bbs(all_bb)
+        if annotation_mode == 1:
+            # Only remove fully covered
+            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
+            if len(all_bb) > 1: 
+                all_bb = handle_covered_bbs(all_bb, annotation_mode)
+            all_bbs[t] = all_bb
+        elif annotation_mode == 2:
+            # Cut partially covered bbs
+            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
+            if len(all_bb) > 1: 
+                all_bb = handle_covered_bbs(all_bb, annotation_mode)
+            all_bbs[t] = all_bb
         else:
-            all_bbs[t]=create_bound_boxes(all_projected_points[t], image_bounds)
+            # No occlusion handling
+            all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
     if writeToJson and folder_path:
         bbs_to_json(all_bbs, folder_path)
     return all_bbs
