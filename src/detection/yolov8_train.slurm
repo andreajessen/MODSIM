@@ -23,5 +23,6 @@ echo "We are using $SLURM_CPUS_ON_NODE cores per node"
 echo "Total of $SLURM_NTASKS cores"
 
 module purge
-source activate myenv
-yolo train model=yolov8n.pt data='dataset.yaml' epochs=3 imgsz=640
+module load Anaconda3/2022.05
+pip install ultralytics
+yolo train model=yolov8n.pt data='/cluster/work/solveijm/MODSIM/src/detection/dataset.yaml' epochs=3 imgsz=640
