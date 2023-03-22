@@ -300,7 +300,7 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         ticks_fontsize = 24
 
     time_stamps = list(all_projected_points.keys())
-    time_stamps.sort()
+    # time_stamps.sort()
 
     def make_frame(idiot_time):
         # Some hack to fix the time stamp index because of
