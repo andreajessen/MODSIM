@@ -1,4 +1,5 @@
 import numpy as np
+from datatypes.track import Track
 ##################################################################
 #
 # Vessel
@@ -19,7 +20,7 @@ class Vessel():
         self.beam = beam
         self.length = length
         self.label = label
-        self.track = None
+        self.track = Track()
         self.id = id
     
     def set_track(self, track):

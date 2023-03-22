@@ -2,8 +2,7 @@ import numpy as np
 import json
 import os
 
-from utils import dict_to_json, json_to_tracks, json_to_vessels, json_to_bb
-
+from utils import *
 from datatypes.virtualCamera import VirtualCamera
 from dynamicSceneGenerator import DynamicSceneGenerator
 from datatypes.boundingBox import BoundingBox
@@ -13,7 +12,6 @@ from errorGenerator import ErrorGenerator
 #       Functionality for creating a dynamic scene with 
 #       random tracks
 ##########################################################
-
 
 def create_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
     # Generate dynamic scene with random tracks
@@ -26,6 +24,20 @@ def create_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False
         vessels_to_json(vessels, path)
     return dsg
 
+def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+    dsg = DynamicSceneGenerator()
+    dsg.set_random_vessels(number_of_vessels)
+    dsg.set_initial_vessel_tracks()
+    if writeToJson and path:
+        vessels = dsg.get_vessels()
+        vessels_to_json(vessels, path)
+    return dsg
+
+def generate_positions_t(dsg, t, writeToJson=False, path=None):
+    dsg.generate_random_tracks_t(t)
+    if writeToJson and path:
+        vessels = dsg.get_vessels()
+        append_track_to_json(vessels, path, t)
 
 #########################################################
 #       Functionality for placing a camera in the scene
@@ -106,6 +118,13 @@ def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
     projected_points = project_all_points(camera_rig, vessel_list)
     if writeToJson:
         projectedPoints_to_json(projected_points, folder_path)
+    return projected_points
+
+def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None):
+    points = {vessel.id: vessel.calculate_3D_cornerpoints(t) for vessel in vessels}
+    projected_points = {vesselID: camera_rig.take_photo(vessel_points, t) for vesselID, vessel_points in points.items()}
+    if writeToJson and folder_path:
+        update_projectedPoints_json(projected_points, folder_path, t)
     return projected_points
 
 #########################################################
@@ -245,7 +264,7 @@ def create_all_bbs(all_projected_points, image_bounds, annotation_mode=0, writeT
 
 
 
-#########################################################
+'''#########################################################
 #       Save objects to json files
 #########################################################
 
@@ -277,7 +296,7 @@ def error_bbs_to_json(error_bbs, folder_path):
     error_bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs[time_stamp]} for time_stamp in error_bbs.keys()}
     save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
     dict_to_json(save_path, error_bb_dict)
-
+'''
 
 
 #########################################################
