@@ -351,3 +351,12 @@ def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, writeToJ
     for t in range(t_start, t_end):
         pps[t], bbs[t], eBBs[t] = perform_one_time_step(dsg, errorGenerator, camera_rig, t, writeToJson=writeToJson, path=path)
     return pps, bbs, eBBs
+
+#############################################################
+#       Perform full cycle for one time step from pose data
+############################################################
+def perform_one_time_step_poseData(dsg, errorGenerator, camera_rig, t, writeToJson=False, path=None):
+    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
+    bbs = create_bound_boxes_t(pps, camera_rig.camera.image_bounds, t, writeToJson=writeToJson, folder_path=path)
+    eBBs =  errorGenerator.generate_eBBs_t(bbs, t, writeToJson=writeToJson, folder_path=path)
+    return pps, bbs, eBBs
