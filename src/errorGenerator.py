@@ -1,6 +1,7 @@
 from datatypes.boundingBox import BoundingBox
 import numpy as np 
 import yaml
+from utils import update_eBBs_json, error_bbs_to_json
 
 class ErrorGenerator:
 
@@ -35,10 +36,10 @@ class ErrorGenerator:
             return None
         
         # Introduce error based on normal distribution
-        e_cx = np.random.normal(self.mu_cx, self.sigma_cx, 1)
-        e_cy = np.random.normal(self.mu_cy, self.sigma_cy, 1)
-        e_w = np.random.normal(self.mu_w, self.sigma_w, 1)
-        e_h = np.random.normal(self.mu_h, self.sigma_h, 1)
+        e_cx = float(np.random.normal(self.mu_cx, self.sigma_cx, 1))
+        e_cy = float(np.random.normal(self.mu_cy, self.sigma_cy, 1))
+        e_w = float(np.random.normal(self.mu_w, self.sigma_w, 1))
+        e_h = float(np.random.normal(self.mu_h, self.sigma_h, 1))
 
         new_centre = BB.centre + [e_cx, e_cy]
         new_w = BB.width + e_w
@@ -55,10 +56,18 @@ class ErrorGenerator:
         return dropout
 
 
-    def generate_all_error_BBs(self, bb_dict):
+    def generate_all_error_BBs(self, bb_dict, writeToJson=False, folder_path=None):
         '''
         Input:
         Dictionary of timestamp: list of BBs
         '''
         error_bbs = {time_stamp: list(filter(lambda item: item is not None, [self.generate_error_BB(bb) for bb in bbs])) for time_stamp, bbs in bb_dict.items()}
+        if writeToJson and folder_path:
+            error_bbs_to_json(error_bbs, folder_path)
+        return error_bbs
+    
+    def generate_eBBs_t(self, bbs_t, t, writeToJson=False, folder_path=None):
+        error_bbs = list(filter(lambda item: item is not None, [self.generate_error_BB(bb) for bb in bbs_t]))
+        if writeToJson and folder_path:
+            update_eBBs_json(error_bbs, folder_path, t)
         return error_bbs
