@@ -131,6 +131,49 @@ def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None
 #       Functionality for creating ground truth BBs
 #########################################################
 
+def create_bound_boxes_t(projected_points, image_bounds, time_stamp, writeToJson=False, folder_path=None):
+    '''
+    Input:
+    - Projected points: dict with vesselID as key and array of projected points for that vessel as item.
+    - Image bounds: Array of len 2 with x and y image bounds
+    '''
+    bbs = []
+    for vesselID, pps in projected_points.items():
+        try:
+            x_vals = []
+            y_vals = []
+            depth_vals = []
+            for point in pps:
+                x_vals.append(point.get_x())
+                y_vals.append(point.get_y())
+                depth_vals.append(point.get_depth())
+            max_x = np.max(x_vals)
+            min_x = np.min(x_vals)
+            max_y = np.max(y_vals)
+            min_y = np.min(y_vals)
+            if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
+                if max_x >= image_bounds[0]:
+                    max_x = image_bounds[0]
+                if min_x <= 0:
+                    min_x = 0
+                if max_y >= image_bounds[1]:
+                    max_y = image_bounds[1]
+                if min_y <= 0:
+                    min_y = 0
+                width = max_x-min_x
+                height = max_y - min_y
+                centre = [min_x+width/2, min_y+height/2]
+                depth = np.average(depth_vals) #OBS which depth should we use
+                bounding_box = BoundingBox(vesselID, centre, width, height, depth)
+                if depth >= 0:
+                    bbs.append(bounding_box)
+        except NameError:
+            # If vesselID do not have any pps
+            continue
+    if writeToJson and folder_path:
+        update_bbs_json(bbs, folder_path, time_stamp)
+    return bbs
+
 def create_bound_boxes_json(projected_points, image_bounds):
     bbs = []
     for vesselID, vessel_dict in projected_points.items():
@@ -305,6 +348,24 @@ def error_bbs_to_json(error_bbs, folder_path):
 def create_distorted_bbs_from_json(detector_stats_path, bb_path, writeToJson=False, folder_path=None):
     all_bbs = json_to_bb(bb_path)
     errorGenerator = ErrorGenerator(detector_stats_path)
-    errorBBs = errorGenerator.generate_all_error_BBs(all_bbs)
-    if writeToJson and folder_path:
-        error_bbs_to_json(errorBBs, folder_path)
+    errorBBs = errorGenerator.generate_all_error_BBs(all_bbs, writeToJson=writeToJson, folder_path=folder_path)
+    return errorBBs
+
+
+#########################################################
+#       Perform full cycle for one timestep
+#########################################################
+def perform_one_time_step(dsg, errorGenerator, camera_rig, t, writeToJson=False, path=None):
+    generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
+    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
+    bbs = create_bound_boxes_t(pps, camera_rig.camera.image_bounds, t, writeToJson=writeToJson, folder_path=path)
+    eBBs =  errorGenerator.generate_all_eBBs_t(bbs, t, writeToJson=writeToJson, folder_path=path)
+    return pps, bbs, eBBs
+
+def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, writeToJson=False, path=None):
+    pps = {}
+    bbs = {}
+    eBBs = {}
+    for t in range(t_start, t_end):
+        pps[t], bbs[t], eBBs[t] = perform_one_time_step(dsg, errorGenerator, camera_rig, t, writeToJson=writeToJson, path=path)
+    return pps, bbs, eBBs
