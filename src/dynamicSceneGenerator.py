@@ -19,6 +19,7 @@ class DynamicSceneGenerator():
         """
         self.vessels = vessels
         self.superSimpleTrackGenerator = SuperSimpleTrackGenerator()
+        self.vessel_track_parameters = {}
     
     def get_vessels(self):
         return self.vessels
@@ -57,6 +58,7 @@ class DynamicSceneGenerator():
         - p_0 (array): position vector of the circular track
         - frequency (int, seconds): time difference between the discrete time steps
         '''
+        self.frequency = frequency
         self.p_0 = p_0
         if max_radius < len(self.vessels):
             raise Exception("Can not generate a collision free model. Increase radius and decrease number of vessels.")
@@ -76,7 +78,45 @@ class DynamicSceneGenerator():
 
             theta_start = np.radians(np.random.randint(0, 360))
             w = np.random.uniform(w_min, w_max)
-            vessel.set_track(self.superSimpleTrackGenerator.generate_track(start_time, end_time, frequency, radius, theta_start, p_0, w, vessel))
+            vessel.set_track(self.superSimpleTrackGenerator.generate_track(start_time, end_time, self.frequency, radius, theta_start, p_0, w))
+            used_radii = np.append(used_radii,radius)
+            for x in range(1, required_distance):
+                used_radii = np.append(used_radii,radius+x)
+                used_radii = np.append(used_radii,radius-x)
+        
+        self.largest_radius = np.max(used_radii)
+    
+    def set_initial_vessel_tracks(self, min_radius=5, max_radius=180, w_min=0.005, w_max=0.03, p_0=[200,200], frequency=1):
+        '''
+        - min_radius (int): minimum radius of the circle
+        - max_radius (int): max radius of the circle
+        - w_min (double): minimum rotation rate (radians/seconds)
+        - w_max (double): max rotation rate (radians/seconds)
+        - p_0 (array): position vector of the circular track
+        - frequency (int, seconds): time difference between the discrete time steps
+        '''
+        self.frequency = frequency
+        self.p_0 = p_0
+        if max_radius < len(self.vessels):
+            raise Exception("Can not generate a collision free model. Increase radius and decrease number of vessels.")
+        used_radii = np.array([])
+        for vessel in self.vessels:
+
+            # To avoid collision all vessels should have different radii and
+            # we assume the boats keep at least the distance of their beam between each other
+            # If the required distance is to large, the random radius generator might take to much time
+            required_distance = vessel.get_beam()
+            radius = np.random.choice(list(set(range(min_radius, max_radius)) - set(used_radii)))
+            while not self.check_legal_radius(radius, used_radii, required_distance):
+            #while ((radius in used_radii) or ((radius+vessel.get_beam()) in used_radii) or ((radius-vessel.get_beam()) in used_radii)):
+                # To speed up process:
+                radius = np.random.choice(list(set(range(min_radius, max_radius)) - set(used_radii)))
+                # radius = np.random.randint(min_radius, max_radius)
+
+            theta_start = np.radians(np.random.randint(0, 360))
+            w = np.random.uniform(w_min, w_max)
+            
+            self.vessel_track_parameters[vessel] = {'radius': radius, 'theta_start': theta_start, 'w': w}
             used_radii = np.append(used_radii,radius)
             for x in range(1, required_distance):
                 used_radii = np.append(used_radii,radius+x)
@@ -84,6 +124,16 @@ class DynamicSceneGenerator():
         
         self.largest_radius = np.max(used_radii)
 
+    
+    def generate_random_tracks_t(self, t):
+        '''
+        Generates next track position for the next time step for all vessels
+        Input:
+        - Next time step
+        '''
+        for vessel in self.vessels:
+            parameters = self.vessel_track_parameters[vessel]
+            self.superSimpleTrackGenerator.calculate_next_position(t, self.frequency, self.p_0, vessel.get_track(), parameters['radius'], parameters['theta_start'], parameters['w'])
 
 
     def set_random_vessels(self, number):
