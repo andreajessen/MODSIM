@@ -7,6 +7,7 @@ from functools import partial
 # importing movie py libraries
 from moviepy.editor import VideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
+from utils import json_to_projectedPoints, json_to_bb
 
 ###############################################################################################
 #
@@ -27,6 +28,18 @@ def get_color(vesselID):
     vessel_count += 1
     vesselID2Color[vesselID] = plot_colors[color_index]
     return vesselID2Color[vesselID]
+
+def get_dict_item(dict, key):
+    try:
+        return dict[key]
+    except KeyError:
+        try:
+            return dict[str(key)]
+        except KeyError:
+            try:
+                return dict[float(key)]
+            except KeyError:
+                return dict[int(key)]
  
 ###############################################################################################
 #
@@ -284,11 +297,12 @@ def visualize_camera_pose_in_dsg(camera_rig, vessels, folder_path='./gifs', y_x_
 def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
     '''
     Input:
-    projected_points (List): List of lists of points for each vessel
+    all_projected_points (List): List of lists of points for each vessel
     figsize (int): Size of figure
     image_bounds (Tuple): x and y pixel boundaries
 
     '''
+
     if fastplot:
         fig, ax = plt.subplots()
         fontsize = 10
@@ -353,6 +367,9 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
     gif_path = os.path.join(folder_path, 'projected_points.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
+def visualize_projections_json_mov(projected_points_path, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
+    all_projected_points = json_to_projectedPoints(projected_points_path)
+    visualize_projections_mov(all_projected_points, image_bounds, show_box=show_box, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_duration=max_duration)
 
 
 def plot_projections(projected_points, image_bounds, t, show_box, fastplot=False):
@@ -458,8 +475,8 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
         fontsize = 28
         ticks_fontsize = 24
 
-    time_stamps = [float(x) for x in list(all_bounding_boxes.keys())]
-    time_stamps.sort()
+    time_stamps = list(all_bounding_boxes.keys())
+    # time_stamps.sort()
 
     def make_frame(idiot_time):
         # Some hack to fix the time stamp index because of
@@ -471,7 +488,7 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
 
         # Get time stamp
         t = time_stamps[time_index]
-        bounding_boxes = all_bounding_boxes[str(t)]
+        bounding_boxes = get_dict_item(all_bounding_boxes, t)
         # Clear
         ax.clear()
 
@@ -508,6 +525,12 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'boundingBoxes.mp4')
     animation.write_videofile(gif_path,fps=fps)
+
+def visualize_bounding_boxes_json_mov(bbs_path, image_bounds, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
+    all_bbs = json_to_bb(bbs_path)
+    all_pps = json_to_projectedPoints(pps_path) if (pps_path and show_projected_points) else None
+    
+    visualize_bounding_boxes_mov(all_bbs, image_bounds, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=folder_path, folder_path=folder_path, fps=fps, skip=skip, max_duration=max_duration)
 
 def plot_bbs(bounding_boxes, image_bounds, t, projected_points, show_projected_points, fastplot=False):
     if fastplot:
@@ -581,8 +604,8 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
         fontsize = 28
         ticks_fontsize = 24
 
-    time_stamps = [float(x) for x in list(all_distorted_bbs.keys())]
-    time_stamps.sort()
+    time_stamps = list(all_distorted_bbs.keys())
+    #time_stamps.sort()
 
     def make_frame(idiot_time):
         # Some hack to fix the time stamp index because of
@@ -593,14 +616,14 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
 
         # Get time stamp
         t = time_stamps[time_index]
-        distorted_bbs = all_distorted_bbs[str(t)]
+        distorted_bbs = get_dict_item(all_distorted_bbs, t)
         # Clear
         ax.clear()
         if show_original_BBS:
             if not original_BBs:
                 print("Provide original BBs when show original BBs is true")
             else:
-                for bb in original_BBs[str(t)]:
+                for bb in get_dict_item(original_BBs,t):
                     xs, ys = bb.get_points_for_visualizing()
                     ax.plot(xs, ys, '-', color='lightgrey')
         for bb in distorted_bbs:
@@ -627,6 +650,12 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'distortedBoundingBoxes.mp4')
     animation.write_videofile(gif_path,fps=fps)
+
+def visualize_distorted_bounding_boxes_json_mov(eBbs_path, image_bounds, original_BBs_path=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False, skip=0, max_duration=None):
+    all_distorted_bbs = json_to_bb(eBbs_path)
+    original_BBs = json_to_bb(original_BBs_path) if (show_original_BBS and original_BBs_path) else None
+    visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, original_BBs=original_BBs, show_original_BBS=show_original_BBS, folder_path=folder_path, fps=fps, fastplot=fastplot, skip=skip, max_duration=max_duration)
+
 
 def plot_distorted_bbs(distorted_bbs, image_bounds, t, original_BBs, show_original_BBS, fastplot=False):
     if fastplot:

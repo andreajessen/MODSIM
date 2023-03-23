@@ -24,7 +24,6 @@ def update_json(path, dict):
     '''
     if os.path.exists(path) == False:
         dict_to_json(path, dict)
-        print('did it')
     else:
         with open (path, mode="r+") as file:
             file.seek(os.stat(path).st_size -1)
@@ -135,10 +134,32 @@ def bbs_to_json(bbs, folder_path):
     # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
     bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs[time_stamp]} for time_stamp in bbs.keys()}
     save_path = os.path.join(folder_path, 'boundingBoxes.json')
-    dict_to_json(save_path, bb_dict) 
+    dict_to_json(save_path, bb_dict)
+
+def update_bbs_json(bbs, folder_path, time_stamp):
+    '''
+    Input:
+    - Projected points for the given time stamp
+    - Path to save file
+    - Time stamp
+    '''
+    bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs}}
+    save_path = os.path.join(folder_path, 'boundingBoxes.json')
+    update_json(save_path, bb_dict)
 
 def error_bbs_to_json(error_bbs, folder_path):
     # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
     error_bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs[time_stamp]} for time_stamp in error_bbs.keys()}
     save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
     dict_to_json(save_path, error_bb_dict)
+
+def update_eBBs_json(error_bbs, folder_path, time_stamp):
+    '''
+    Input:
+    - Projected points for the given time stamp
+    - Path to save file
+    - Time stamp
+    '''
+    eBB_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs}}
+    save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
+    update_json(save_path, eBB_dict)
