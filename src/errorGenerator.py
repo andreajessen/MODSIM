@@ -66,7 +66,7 @@ class ErrorGenerator:
             error_bbs_to_json(error_bbs, folder_path)
         return error_bbs
     
-    def generate_all_eBBs_t(self, bbs_t, t, writeToJson=False, folder_path=None):
+    def generate_eBBs_t(self, bbs_t, t, writeToJson=False, folder_path=None):
         error_bbs = list(filter(lambda item: item is not None, [self.generate_error_BB(bb) for bb in bbs_t]))
         if writeToJson and folder_path:
             update_eBBs_json(error_bbs, folder_path, t)
