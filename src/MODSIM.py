@@ -7,13 +7,36 @@ from datatypes.virtualCamera import VirtualCamera
 from dynamicSceneGenerator import DynamicSceneGenerator
 from datatypes.boundingBox import BoundingBox
 from errorGenerator import ErrorGenerator
+#########################################################
+#       Functionality for initializing DSG
+##########################################################
+def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+    dsg = DynamicSceneGenerator()
+    dsg.set_random_vessels(number_of_vessels)
+    dsg.set_initial_vessel_tracks()
+    if writeToJson and path:
+        vessels = dsg.get_vessels()
+        vessels_to_json(vessels, path)
+    return dsg
 
 #########################################################
-#       Functionality for creating a dynamic scene with 
-#       random tracks
+#       Functionality for Track generation
 ##########################################################
 
+def generate_positions_t(dsg, t, writeToJson=False, path=None):
+    '''
+    Generates tracks for one time step
+    '''
+    dsg.generate_random_tracks_t(t)
+    if writeToJson and path:
+        vessels = dsg.get_vessels()
+        append_track_to_json(vessels, path, t)
+
+
 def create_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+    '''
+    Generates tracks for default number of time steps (200)
+    '''
     # Generate dynamic scene with random tracks
     dsg = DynamicSceneGenerator()
     dsg.set_random_vessels(number_of_vessels)
@@ -24,20 +47,7 @@ def create_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False
         vessels_to_json(vessels, path)
     return dsg
 
-def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
-    dsg = DynamicSceneGenerator()
-    dsg.set_random_vessels(number_of_vessels)
-    dsg.set_initial_vessel_tracks()
-    if writeToJson and path:
-        vessels = dsg.get_vessels()
-        vessels_to_json(vessels, path)
-    return dsg
 
-def generate_positions_t(dsg, t, writeToJson=False, path=None):
-    dsg.generate_random_tracks_t(t)
-    if writeToJson and path:
-        vessels = dsg.get_vessels()
-        append_track_to_json(vessels, path, t)
 
 #########################################################
 #       Functionality for placing a camera in the scene
@@ -83,6 +93,16 @@ def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=60
 #########################################################
 #       Functionality for projecting all points
 #########################################################
+def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None):
+    '''
+    Projects points for the given time step
+    '''
+    points = {vessel.id: vessel.calculate_3D_cornerpoints(t) for vessel in vessels}
+    projected_points = {vesselID: camera_rig.take_photo(vessel_points, t) for vesselID, vessel_points in points.items()}
+    if writeToJson and folder_path:
+        update_projectedPoints_json(projected_points, folder_path, t)
+    return projected_points
+
 
 def project_all_points(camera_rig, vessels, writeToJson=False, folder_path=None):
     '''
@@ -104,6 +124,7 @@ def project_all_points(camera_rig, vessels, writeToJson=False, folder_path=None)
 
     return all_projected_points
 
+
 def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
     '''
     Inputs json path with tracks and vessels, and projects all corner points
@@ -120,12 +141,7 @@ def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
         projectedPoints_to_json(projected_points, folder_path)
     return projected_points
 
-def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None):
-    points = {vessel.id: vessel.calculate_3D_cornerpoints(t) for vessel in vessels}
-    projected_points = {vesselID: camera_rig.take_photo(vessel_points, t) for vesselID, vessel_points in points.items()}
-    if writeToJson and folder_path:
-        update_projectedPoints_json(projected_points, folder_path, t)
-    return projected_points
+
 
 #########################################################
 #       Functionality for creating ground truth BBs
@@ -133,9 +149,13 @@ def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None
 
 def create_bound_boxes_t(projected_points, image_bounds, time_stamp, writeToJson=False, folder_path=None):
     '''
+    Creates bounding boxes for the given time step
     Input:
     - Projected points: dict with vesselID as key and array of projected points for that vessel as item.
     - Image bounds: Array of len 2 with x and y image bounds
+    - Time stamp
+    Return
+    - bbs: List of bounding boxes
     '''
     bbs = []
     for vesselID, pps in projected_points.items():
@@ -203,7 +223,6 @@ def create_bound_boxes_json(projected_points, image_bounds):
                     bbs.append(bounding_box)
     return bbs
 
-# NB! Might need change depending on the structure of projected points.
 def create_all_bbs_from_json(folder_path, image_bounds, annotation_mode=0, writeToJson=False):
     filepath = os.path.join(folder_path, 'projectedPoints.json')
     with open(filepath, 'r') as f:
@@ -305,43 +324,6 @@ def create_all_bbs(all_projected_points, image_bounds, annotation_mode=0, writeT
     return all_bbs
 
 
-
-
-'''#########################################################
-#       Save objects to json files
-#########################################################
-
-def tracks_to_json(vessels, path):
-    # NB! Assumes all vessels have the same timestamp
-    all_tracks = {key: {vessel.id: vessel.get_track_dict()[key] for vessel in vessels} for key in vessels[0].get_track_dict().keys()}
-    filename = os.path.join(path, 'tracks.json')
-    dict_to_json(filename, all_tracks)
-
-def vessels_to_json(vessels, path):
-    filename = os.path.join(path, 'vehicle_characteristics.json')
-    vessel_dict = {vessel.id: {'air_draft_m': vessel.air_draft, 'beam_m': vessel.beam, 'length_m': vessel.length, 'label': vessel.label} for vessel in vessels}
-    dict_to_json(filename, vessel_dict)
-
-def projectedPoints_to_json(projected_points, path):
-    # All projected points will probably be on a different format. Did this to get a file.
-    projected_points_dict = {time_stamp: {vesselID: {cornerNumber: {'x': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[0], 'y': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[1], 'depth': projected_points[time_stamp][vesselID][cornerNumber].depth} for cornerNumber in range(len(projected_points[time_stamp][vesselID]))} for vesselID in projected_points[time_stamp]} for time_stamp in projected_points.keys()}
-    filename = os.path.join(path, 'projectedPoints.json')
-    dict_to_json(filename, projected_points_dict)
-
-def bbs_to_json(bbs, folder_path):
-    # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
-    bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs[time_stamp]} for time_stamp in bbs.keys()}
-    save_path = os.path.join(folder_path, 'boundingBoxes.json')
-    dict_to_json(save_path, bb_dict) 
-
-def error_bbs_to_json(error_bbs, folder_path):
-    # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
-    error_bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs[time_stamp]} for time_stamp in error_bbs.keys()}
-    save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
-    dict_to_json(save_path, error_bb_dict)
-'''
-
-
 #########################################################
 #       Functions for error generation
 #########################################################
@@ -353,7 +335,7 @@ def create_distorted_bbs_from_json(detector_stats_path, bb_path, writeToJson=Fal
 
 
 #########################################################
-#       Perform full cycle for one timestep
+#       Perform full cycle for one time step
 #########################################################
 def perform_one_time_step(dsg, errorGenerator, camera_rig, t, writeToJson=False, path=None):
     generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
