@@ -359,7 +359,7 @@ def perform_one_time_step(dsg, errorGenerator, camera_rig, t, writeToJson=False,
     generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
     pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
     bbs = create_bound_boxes_t(pps, camera_rig.camera.image_bounds, t, writeToJson=writeToJson, folder_path=path)
-    eBBs =  errorGenerator.generate_all_eBBs_t(bbs, t, writeToJson=writeToJson, folder_path=path)
+    eBBs =  errorGenerator.generate_eBBs_t(bbs, t, writeToJson=writeToJson, folder_path=path)
     return pps, bbs, eBBs
 
 def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, writeToJson=False, path=None):
