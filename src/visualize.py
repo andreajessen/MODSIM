@@ -4,7 +4,7 @@ import os
 # importing movie py libraries
 from moviepy.editor import VideoClip
 from moviepy.video.io.bindings import mplfig_to_npimage
-from utils import json_to_projectedPoints, json_to_bb
+from utils import json_to_projectedPoints, json_to_annot, json_to_detection
 
 ###############################################################################################
 #
@@ -261,7 +261,7 @@ def visualize_projections_json_mov(projected_points_path, image_bounds, show_box
 #
 ###############################################################################################
 
-def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
+def visualize_annotations(annotations, image_bounds, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -279,7 +279,7 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
         fontsize = 28
         ticks_fontsize = 24
 
-    time_stamps = list(all_bounding_boxes.keys())
+    time_stamps = list(annotations.keys())
     # time_stamps.sort()
 
     def make_frame(idiot_time):
@@ -292,22 +292,24 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
 
         # Get time stamp
         t = time_stamps[time_index]
-        bounding_boxes = get_dict_item(all_bounding_boxes, t)
+        annotations_t = get_dict_item(annotations, t)
         # Clear
         ax.clear()
 
-        for i in range(len(bounding_boxes)):
-            bb = bounding_boxes[i]
+        for vesselID, annot in annotations_t.items():
+            bb = annot['bbox']
             xs, ys = bb.get_points_for_visualizing()
-            ax.plot(xs, ys, '-', color=get_color(bb.vesselID))
+            ax.plot(xs, ys, '-', color=get_color(vesselID))
+            if classification:
+                ax.text(xs[1], ys[0]-5, annot['label'], color=get_color(vesselID))
             if show_projected_points:
                 if not projected_points:
                     print("Provide projected points when show projected points is true")
                 else:
-                    vessel_proj = projected_points[t][i]
+                    vessel_proj = projected_points[t][vesselID]
                     x_vals = np.array([point.image_coordinate[0] for point in vessel_proj])
                     y_vals = np.array([point.image_coordinate[1] for point in vessel_proj])
-                    ax.plot(x_vals, y_vals, 'o', color=get_color(bb.vesselID))
+                    ax.plot(x_vals, y_vals, 'o', color=get_color(vesselID))
         
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
@@ -330,11 +332,11 @@ def visualize_bounding_boxes_mov(all_bounding_boxes, image_bounds, projected_poi
     gif_path = os.path.join(folder_path, 'boundingBoxes.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_bounding_boxes_json_mov(bbs_path, image_bounds, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
-    all_bbs = json_to_bb(bbs_path)
+def visualize_annotations_json(annots_path, image_bounds, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None):
+    all_annots = json_to_annot(annots_path)
     all_pps = json_to_projectedPoints(pps_path) if (pps_path and show_projected_points) else None
     
-    visualize_bounding_boxes_mov(all_bbs, image_bounds, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=folder_path, folder_path=folder_path, fps=fps, skip=skip, max_duration=max_duration)
+    visualize_annotations(all_annots, image_bounds, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_duration=max_duration)
 
 ###############################################################################################
 #
@@ -342,7 +344,7 @@ def visualize_bounding_boxes_json_mov(bbs_path, image_bounds, pps_path = None, s
 #
 ###############################################################################################
 
-def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, original_BBs=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False, skip=0, max_duration=None):
+def visualize_detections(detections, image_bounds, classification=True, annotations=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, skip=0, max_duration=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -360,7 +362,7 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
         fontsize = 28
         ticks_fontsize = 24
 
-    time_stamps = list(all_distorted_bbs.keys())
+    time_stamps = list(detections.keys())
     #time_stamps.sort()
 
     def make_frame(idiot_time):
@@ -372,20 +374,26 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
 
         # Get time stamp
         t = time_stamps[time_index]
-        distorted_bbs = get_dict_item(all_distorted_bbs, t)
+        detections_t = get_dict_item(detections, t)
         # Clear
         ax.clear()
-        if show_original_BBS:
-            if not original_BBs:
+        if show_annotations:
+            if not annotations:
                 print("Provide original BBs when show original BBs is true")
             else:
-                for bb in get_dict_item(original_BBs,t):
-                    xs, ys = bb.get_points_for_visualizing()
+                annotations_t = get_dict_item(annotations,t)
+                for vesselID, annot in annotations_t.items():
+                    xs, ys = annot['bbox'].get_points_for_visualizing()
                     ax.plot(xs, ys, '-', color='lightgrey')
-        for bb in distorted_bbs:
-            xs, ys = bb.get_points_for_visualizing()
-            ax.plot(xs, ys, '-', color=get_color(bb.vesselID))
-        
+                    if classification:
+                        ax.text(xs[1], ys[0]-5, annot['label'], color='lightgrey')
+        for vesselID, detection in detections_t.items():
+            xs, ys = detection['bbox'].get_points_for_visualizing()
+            ax.plot(xs, ys, '-', color=get_color(vesselID))
+            if classification:
+                text = f"{detection['label']} {detection['confidenceScore']}" if detection['confidenceScore'] else f"{detection['label']}"
+                ax.text(xs[1], ys[0]-5, text, color=get_color(vesselID))
+    
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
         ax.set_ylabel('y', fontsize = fontsize)
@@ -407,7 +415,7 @@ def visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, orig
     gif_path = os.path.join(folder_path, 'distortedBoundingBoxes.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_distorted_bounding_boxes_json_mov(eBbs_path, image_bounds, original_BBs_path=None, show_original_BBS=False, folder_path='./gifs/', fps=3, fastplot=False, skip=0, max_duration=None):
-    all_distorted_bbs = json_to_bb(eBbs_path)
-    original_BBs = json_to_bb(original_BBs_path) if (show_original_BBS and original_BBs_path) else None
-    visualize_distorted_bounding_boxes_mov(all_distorted_bbs, image_bounds, original_BBs=original_BBs, show_original_BBS=show_original_BBS, folder_path=folder_path, fps=fps, fastplot=fastplot, skip=skip, max_duration=max_duration)
+def visualize_detections_json(detections_path, image_bounds, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, skip=0, max_duration=None):
+    detections = json_to_detection(detections_path)
+    annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
+    visualize_detections(detections, image_bounds,  annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, skip=skip, max_duration=max_duration)
