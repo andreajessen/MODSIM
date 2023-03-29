@@ -102,7 +102,7 @@ def json_to_annot(path):
     with open(path, 'r') as f:
         annot_dict = json.load(f)
     # (self, vesselID, centre, width, height, depth)
-    annots = {time_stamp: {vesselID: {'label': annot['label'], 'bbox': BoundingBox(vesselID, (annot['bbox']['centre']['x'], annot['bbox']['centre']['y']), annot['bbox']['height'], annot['bbox']['width'], annot['bbox']['depth'])} for vesselID, annot in vessels.items()} for time_stamp, vessels in annot_dict.items()}
+    annots = {time_stamp: {vesselID: {'label': annot['label'], 'bbox': BoundingBox(vesselID, (annot['bbox']['centre']['x'], annot['bbox']['centre']['y']), annot['bbox']['width'], annot['bbox']['height'], annot['bbox']['depth'])} for vesselID, annot in vessels.items()} for time_stamp, vessels in annot_dict.items()}
     return annots
 
 def json_to_detection(path):
@@ -117,7 +117,7 @@ def json_to_detection(path):
     with open(path, 'r') as f:
         detection_dict = json.load(f)
     # (self, vesselID, centre, width, height, depth)
-    detections = {time_stamp: {vesselID: {'label': detection['label'], 'confidenceScore': detection['confidenceScore'], 'bbox': BoundingBox(vesselID, (detection['bbox']['centre']['x'], detection['bbox']['centre']['y']), detection['bbox']['height'], detection['bbox']['width'], detection['bbox']['depth'])} for vesselID, detection in vessels.items()} for time_stamp, vessels in detection_dict.items()}
+    detections = {time_stamp: {vesselID: {'label': detection['label'], 'confidenceScore': detection['confidenceScore'], 'bbox': BoundingBox(vesselID, (detection['bbox']['centre']['x'], detection['bbox']['centre']['y']), detection['bbox']['width'], detection['bbox']['height'], detection['bbox']['depth'])} for vesselID, detection in vessels.items()} for time_stamp, vessels in detection_dict.items()}
     return detections
 #########################################################
 #       Save objects to json files
