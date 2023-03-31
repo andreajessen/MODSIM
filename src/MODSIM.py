@@ -211,14 +211,14 @@ def create_annotations_t(projected_points, vessels, image_bounds, time_stamp, an
     - List of Annotation objects
     '''
     vessel_dict = {vessel.id: vessel for vessel in vessels}
-    bound_boxes = create_bound_boxes_t(projected_points, image_bounds, time_stamp, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=folder_path)
+    bound_boxes = create_bound_boxes_t(projected_points, image_bounds, annotation_mode=annotation_mode)
     annotations = [Annotation(bb, vessel_dict[bb.vesselID].label, bb.vesselID) for bb in bound_boxes]
     if writeToJson and folder_path:
         update_annots_json(annotations, folder_path, time_stamp)
     return annotations
 
 
-def create_bound_boxes_t(projected_points, image_bounds, time_stamp, annotation_mode=0, writeToJson=False, folder_path=None):
+def create_bound_boxes_t(projected_points, image_bounds, annotation_mode=0):
     '''
     Creates bounding boxes for the given time step
     Input:
@@ -235,63 +235,7 @@ def create_bound_boxes_t(projected_points, image_bounds, time_stamp, annotation_
             bbs.append(bb)
     if len(bbs) > 1: 
         bbs = handle_covered_bbs(bbs, annotation_mode)
-    if writeToJson and folder_path:
-        update_bbs_json(bbs, folder_path, time_stamp)
     return bbs
-
-def create_bound_boxes_json(projected_points, image_bounds):
-    bbs = []
-    for vesselID, vessel_dict in projected_points.items():
-        if vessel_dict:
-            x_vals = list(map(lambda v : v['x'], vessel_dict.values()))
-            y_vals = list(map(lambda v : v['y'], vessel_dict.values()))
-            depth_vals = list(map(lambda v : v['depth'], vessel_dict.values()))
-            max_x = np.max(x_vals)
-            min_x = np.min(x_vals)
-            max_y = np.max(y_vals)
-            min_y = np.min(y_vals)
-            if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
-                if max_x >= image_bounds[0]:
-                    max_x = image_bounds[0]
-                if min_x <= 0:
-                    min_x = 0
-                if max_y >= image_bounds[1]:
-                    max_y = image_bounds[1]
-                if min_y <= 0:
-                    min_y = 0
-                width = max_x-min_x
-                height = max_y - min_y
-                centre = [min_x+width/2, min_y+height/2]
-                depth = np.average(depth_vals) #OBS which depth should we use
-                bounding_box = BoundingBox(vesselID, centre, width, height, depth)
-                if depth >= 0:
-                    bbs.append(bounding_box)
-    return bbs
-
-def create_all_bbs_from_json(folder_path, image_bounds, annotation_mode=0, writeToJson=False):
-    filepath = os.path.join(folder_path, 'projectedPoints.json')
-    with open(filepath, 'r') as f:
-        all_projected_points = json.load(f)
-    all_bbs = {}
-    for t in all_projected_points.keys():
-        if annotation_mode == 1:
-            # Only remove fully covered
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        elif annotation_mode == 2:
-            # Cut partially covered bbs
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        else:
-            # No occlusion handling
-            all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
-    if writeToJson and folder_path:
-        bbs_to_json(all_bbs, folder_path)
-    return all_bbs
 
 def check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
     if ((max_x <= image_bounds[0] and max_x >= 0) or (min_x <= image_bounds[0] and min_x >= 0)) and ((max_y <= image_bounds[1] and max_y >= 0) or (min_y <= image_bounds[1] and min_y >= 0)):
@@ -317,38 +261,6 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
     bbs.append(sorted_bbs[-1])
     return bbs
 
-def create_all_bbs(all_projected_points, image_bounds, annotation_mode=0, writeToJson=False, folder_path=None):
-    all_bbs = {}
-    for t in all_projected_points.keys():
-        if annotation_mode == 1:
-            # Only remove fully covered
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        elif annotation_mode == 2:
-            # Cut partially covered bbs
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        else:
-            # No occlusion handling
-            all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
-    if writeToJson and folder_path:
-        bbs_to_json(all_bbs, folder_path)
-    return all_bbs
-
-
-#########################################################
-#       Functions for error generation
-#########################################################
-def create_distorted_bbs_from_json(detector_stats_path, bb_path, writeToJson=False, folder_path=None):
-    all_bbs = json_to_bb(bb_path)
-    errorGenerator = ErrorGenerator(detector_stats_path)
-    errorBBs = errorGenerator.generate_all_error_BBs(all_bbs, writeToJson=writeToJson, folder_path=folder_path)
-    return errorBBs
-
 
 #########################################################
 #       Perform full cycle for one time step
@@ -370,36 +282,9 @@ def perform_one_time_step(dsg, errorGenerator, camera_rig, t, annotation_mode=0,
     """
     generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
     pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
-    bbs = create_bound_boxes_t(pps, camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    eBBs =  errorGenerator.generate_eBBs_t(bbs, t, writeToJson=writeToJson, folder_path=path)
-    return pps, bbs, eBBs
-
-def perform_one_time_step_class(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
-    """
-    Performs a full cycle for one time step.
-
-    Parameters:
-    dsg (DynamicScene): The dynamic scene
-    error_generator (Error generator): Error generator object
-    camera_rig (Camera rig): Camera rig object
-    t (int): Time step
-    write_to_json (bool): Whether to write results to JSON files (default is False)
-    folder_path (str): Folder path to write JSON files (default is None)
-
-    Returns:
-    Dictionaries containing positions, bounding boxes, and error bounding boxes for each time step.
-    """
-    generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
-    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
     annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    eBBs =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
-    return pps, annots, eBBs
-
-def perform_time_steps_class(t_start, t_end, dsg, errorGenerator, camera_rig, annotation_mode=0, writeToJson=False, path=None):
-    pps, bbs, eBBs = {}, {}, {}
-    for t in range(t_start, t_end):
-        pps[t], bbs[t], eBBs[t] = perform_one_time_step_class(dsg, errorGenerator, camera_rig, t, annotation_mode=annotation_mode, writeToJson=writeToJson, path=path)
-    return pps, bbs, eBBs
+    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
+    return pps, annots, detections
 
 def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotation_mode=0, writeToJson=False, path=None):
     pps, bbs, eBBs = {}, {}, {}
@@ -412,6 +297,6 @@ def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotati
 ############################################################
 def perform_one_time_step_poseData(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
     pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
-    bbs = create_bound_boxes_t(pps, camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    eBBs =  errorGenerator.generate_eBBs_t(bbs, t, writeToJson=writeToJson, folder_path=path)
-    return pps, bbs, eBBs
+    annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
+    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
+    return pps, annots, detections
