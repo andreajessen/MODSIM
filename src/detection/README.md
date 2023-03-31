@@ -48,7 +48,7 @@ sbatch src/detection/yolov8_test.slurm
 ```
 - Or in terminal run (change model to train weights paths and source to test image path)
 ```
-yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_30e_1920imgsz/weights/best.pt source= '/cluster/home/solveijm/hurtigruten/test.txt' imgsz=1920 name=test_30e_1920imgsz save=True
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_30e_1920imgsz/weights/best.pt source= '/cluster/home/solveijm/hurtigruten/test.txt' imgsz=1920 name=test_30e_1920imgsz save=True save_conf=True save_txt=True
 
 ```
 
