@@ -25,8 +25,8 @@ class Track:
         - heading_rad (int): the angle between the direction and x axis in radians
         - time_stamp (int): time stamp of the position
         '''
-        if self.time_stamps and time_stamp <= self.time_stamps[-1]:
-            raise Exception("Invalid position. Timestamp has already happened")
+        '''if self.time_stamps and time_stamp <= self.time_stamps[-1]:
+            raise Exception("Invalid position. Timestamp has already happened")'''
         self.x_values.append(x)
         self.y_values.append(y)
         self.z_values.append(z)

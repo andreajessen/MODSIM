@@ -2,20 +2,43 @@ import numpy as np
 import json
 import os
 
-from utils import dict_to_json, json_to_tracks, json_to_vessels, json_to_bb
-
+from utils import *
 from datatypes.virtualCamera import VirtualCamera
 from dynamicSceneGenerator import DynamicSceneGenerator
 from datatypes.boundingBox import BoundingBox
 from errorGenerator import ErrorGenerator
+from datatypes.detection import Detection
+from datatypes.annotation import Annotation
+#########################################################
+#       Functionality for initializing DSG
+##########################################################
+def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+    dsg = DynamicSceneGenerator()
+    dsg.set_random_vessels(number_of_vessels)
+    dsg.set_initial_vessel_tracks()
+    if writeToJson and path:
+        vessels = dsg.get_vessels()
+        vessels_to_json(vessels, path)
+    return dsg
 
 #########################################################
-#       Functionality for creating a dynamic scene with 
-#       random tracks
+#       Functionality for Track generation
 ##########################################################
+
+def generate_positions_t(dsg, t, writeToJson=False, path=None):
+    '''
+    Generates tracks for one time step
+    '''
+    dsg.generate_random_tracks_t(t)
+    if writeToJson and path:
+        vessels = dsg.get_vessels()
+        append_track_to_json(vessels, path, t)
 
 
 def create_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+    '''
+    Generates tracks for default number of time steps (200)
+    '''
     # Generate dynamic scene with random tracks
     dsg = DynamicSceneGenerator()
     dsg.set_random_vessels(number_of_vessels)
@@ -25,6 +48,7 @@ def create_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False
         tracks_to_json(vessels, path)
         vessels_to_json(vessels, path)
     return dsg
+
 
 
 #########################################################
@@ -71,6 +95,16 @@ def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=60
 #########################################################
 #       Functionality for projecting all points
 #########################################################
+def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None):
+    '''
+    Projects points for the given time step
+    '''
+    points = {vessel.id: vessel.calculate_3D_cornerpoints(t) for vessel in vessels}
+    projected_points = {vesselID: camera_rig.take_photo(vessel_points, t) for vesselID, vessel_points in points.items()}
+    if writeToJson and folder_path:
+        update_projectedPoints_json(projected_points, folder_path, t)
+    return projected_points
+
 
 def project_all_points(camera_rig, vessels, writeToJson=False, folder_path=None):
     '''
@@ -92,6 +126,7 @@ def project_all_points(camera_rig, vessels, writeToJson=False, folder_path=None)
 
     return all_projected_points
 
+
 def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
     '''
     Inputs json path with tracks and vessels, and projects all corner points
@@ -108,92 +143,98 @@ def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
         projectedPoints_to_json(projected_points, folder_path)
     return projected_points
 
+
+
 #########################################################
 #       Functionality for creating ground truth BBs
 #########################################################
+def create_bb(vesselID, pps, image_bounds):
+    '''
+    Create a bounding box around the vessel using its projected points.
 
-def create_bound_boxes_json(projected_points, image_bounds):
-    bbs = []
-    for vesselID, vessel_dict in projected_points.items():
-        if vessel_dict:
-            x_vals = list(map(lambda v : v['x'], vessel_dict.values()))
-            y_vals = list(map(lambda v : v['y'], vessel_dict.values()))
-            depth_vals = list(map(lambda v : v['depth'], vessel_dict.values()))
-            max_x = np.max(x_vals)
-            min_x = np.min(x_vals)
-            max_y = np.max(y_vals)
-            min_y = np.min(y_vals)
-            if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
-                if max_x >= image_bounds[0]:
-                    max_x = image_bounds[0]
-                if min_x <= 0:
-                    min_x = 0
-                if max_y >= image_bounds[1]:
-                    max_y = image_bounds[1]
-                if min_y <= 0:
-                    min_y = 0
-                width = max_x-min_x
-                height = max_y - min_y
-                centre = [min_x+width/2, min_y+height/2]
-                depth = np.average(depth_vals) #OBS which depth should we use
-                bounding_box = BoundingBox(vesselID, centre, width, height, depth)
-                if depth >= 0:
-                    bbs.append(bounding_box)
-    return bbs
+    Inputs:
+    - vessel_id: Id of vessel to create BB around
+    - projected_points: list of projected points
+    - image_bounds: tuple of (xbound, ybound)
 
-# NB! Might need change depending on the structure of projected points.
-def create_all_bbs_from_json(folder_path, image_bounds, annotation_mode=0, writeToJson=False):
-    filepath = os.path.join(folder_path, 'projectedPoints.json')
-    with open(filepath, 'r') as f:
-        all_projected_points = json.load(f)
-    all_bbs = {}
-    for t in all_projected_points.keys():
-        if annotation_mode == 1:
-            # Only remove fully covered
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        elif annotation_mode == 2:
-            # Cut partially covered bbs
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        else:
-            # No occlusion handling
-            all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
+    Returns:
+    - BoundingBox object or None
+    '''
+    try:
+        x_vals = []
+        y_vals = []
+        depth_vals = []
+        for point in pps:
+            x_vals.append(point.get_x())
+            y_vals.append(point.get_y())
+            depth_vals.append(point.get_depth())
+        max_x = np.max(x_vals)
+        min_x = np.min(x_vals)
+        max_y = np.max(y_vals)
+        min_y = np.min(y_vals)
+        if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
+            # BB should be created
+            depth = np.average(depth_vals) #OBS which depth should we use
+            if depth < 0:
+                # BB is behind camera. The BB should not be created. 
+                return None
+            # Ensure bounding box does not exceed image bounds
+            max_x = min(max_x, image_bounds[0])
+            min_x = max(min_x, 0)
+            max_y = min(max_y, image_bounds[1])
+            min_y = max(min_y, 0)
+            width, height = max_x - min_x, max_y - min_y
+            centre = [min_x + width / 2, min_y + height / 2]
+            bounding_box = BoundingBox(vesselID, centre, width, height, depth)
+            return bounding_box
+        # Not inside image bounds, and BB should not be created
+        return None
+    except NameError as e:
+        # Handle exceptions
+        print(f"VesselID do not have any projected points {vesselID}: {str(e)}")
+        return None
+    
+def create_annotations_t(projected_points, vessels, image_bounds, time_stamp, annotation_mode=0, writeToJson=False, folder_path=None):
+    '''
+    Create annotations for vessels based on projected points and image bounds.
+    
+    Inputs:
+    - projected_points: list of projected points
+    - vessels: list of vessels
+    - image_bounds: tuple of (xmin, ymin, xmax, ymax)
+    - time_stamp: timestamp for annotations
+    - annotation_mode: mode for creating annotations (default 0)
+    - write_to_json: boolean indicating whether to write annotations to json file (default False)
+    - folder_path: path to folder to write json file (default None)
+    
+    Returns:
+    - List of Annotation objects
+    '''
+    vessel_dict = {vessel.id: vessel for vessel in vessels}
+    bound_boxes = create_bound_boxes_t(projected_points, image_bounds, annotation_mode=annotation_mode)
+    annotations = [Annotation(bb, vessel_dict[bb.vesselID].label, bb.vesselID) for bb in bound_boxes]
     if writeToJson and folder_path:
-        bbs_to_json(all_bbs, folder_path)
-    return all_bbs
+        update_annots_json(annotations, folder_path, time_stamp)
+    return annotations
 
-def create_bound_boxes(projected_points, image_bounds):
+
+def create_bound_boxes_t(projected_points, image_bounds, annotation_mode=0):
+    '''
+    Creates bounding boxes for the given time step
+    Input:
+    - Projected points: dict with vesselID as key and array of projected points for that vessel as item.
+    - Image bounds: Array of len 2 with x and y image bounds
+    - Time stamp
+    Return
+    - bbs: List of bounding boxes
+    '''
     bbs = []
-    for vesselID, vessel in projected_points.items():
-        if vessel.size > 0:
-            x_vals = np.array([point.image_coordinate[0] for point in vessel])
-            y_vals = np.array([point.image_coordinate[1] for point in vessel])
-            depth_vals = np.array([point.depth for point in vessel])
-            max_x = np.max(x_vals)
-            min_x = np.min(x_vals)
-            max_y = np.max(y_vals)
-            min_y = np.min(y_vals)
-            if check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
-                if max_x >= image_bounds[0]:
-                    max_x = image_bounds[0]
-                if min_x <= 0:
-                    min_x = 0
-                if max_y >= image_bounds[1]:
-                    max_y = image_bounds[1]
-                if min_y <= 0:
-                    min_y = 0
-                width = max_x-min_x
-                height = max_y - min_y
-                centre = [min_x+width/2, min_y+height/2]
-                depth = np.average(depth_vals) #OBS which depth should we use
-                bounding_box = BoundingBox(vesselID, centre, width, height, depth)
-                if depth >= 0:
-                    bbs.append(bounding_box)
+    for vesselID, pps in projected_points.items():
+        bb = create_bb(vesselID, pps, image_bounds)
+        if bb:
+            bbs.append(bb)
+    if len(bbs) > 1: 
+        bbs = handle_covered_bbs(bbs, annotation_mode)
     return bbs
 
 def check_inside_imagebounds(max_x, min_x, max_y, min_y, image_bounds):
@@ -220,72 +261,42 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
     bbs.append(sorted_bbs[-1])
     return bbs
 
-def create_all_bbs(all_projected_points, image_bounds, annotation_mode=0, writeToJson=False, folder_path=None):
-    all_bbs = {}
-    for t in all_projected_points.keys():
-        if annotation_mode == 1:
-            # Only remove fully covered
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        elif annotation_mode == 2:
-            # Cut partially covered bbs
-            all_bb=create_bound_boxes_json(all_projected_points[t], image_bounds)
-            if len(all_bb) > 1: 
-                all_bb = handle_covered_bbs(all_bb, annotation_mode)
-            all_bbs[t] = all_bb
-        else:
-            # No occlusion handling
-            all_bbs[t]=create_bound_boxes_json(all_projected_points[t], image_bounds)
-    if writeToJson and folder_path:
-        bbs_to_json(all_bbs, folder_path)
-    return all_bbs
-
-
-
 
 #########################################################
-#       Save objects to json files
+#       Perform full cycle for one time step
 #########################################################
+def perform_one_time_step(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
+    """
+    Performs a full cycle for one time step.
 
-def tracks_to_json(vessels, path):
-    # NB! Assumes all vessels have the same timestamp
-    all_tracks = {key: {vessel.id: vessel.get_track_dict()[key] for vessel in vessels} for key in vessels[0].get_track_dict().keys()}
-    filename = os.path.join(path, 'tracks.json')
-    dict_to_json(filename, all_tracks)
+    Parameters:
+    dsg (DynamicScene): The dynamic scene
+    error_generator (Error generator): Error generator object
+    camera_rig (Camera rig): Camera rig object
+    t (int): Time step
+    write_to_json (bool): Whether to write results to JSON files (default is False)
+    folder_path (str): Folder path to write JSON files (default is None)
 
-def vessels_to_json(vessels, path):
-    filename = os.path.join(path, 'vehicle_characteristics.json')
-    vessel_dict = {vessel.id: {'air_draft_m': vessel.air_draft, 'beam_m': vessel.beam, 'length_m': vessel.length, 'label': vessel.label} for vessel in vessels}
-    dict_to_json(filename, vessel_dict)
+    Returns:
+    Dictionaries containing positions, bounding boxes, and error bounding boxes for each time step.
+    """
+    generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
+    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
+    annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
+    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
+    return pps, annots, detections
 
-def projectedPoints_to_json(projected_points, path):
-    # All projected points will probably be on a different format. Did this to get a file.
-    projected_points_dict = {time_stamp: {vesselID: {cornerNumber: {'x': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[0], 'y': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[1], 'depth': projected_points[time_stamp][vesselID][cornerNumber].depth} for cornerNumber in range(len(projected_points[time_stamp][vesselID]))} for vesselID in projected_points[time_stamp]} for time_stamp in projected_points.keys()}
-    filename = os.path.join(path, 'projectedPoints.json')
-    dict_to_json(filename, projected_points_dict)
+def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotation_mode=0, writeToJson=False, path=None):
+    pps, bbs, eBBs = {}, {}, {}
+    for t in range(t_start, t_end):
+        pps[t], bbs[t], eBBs[t] = perform_one_time_step(dsg, errorGenerator, camera_rig, t, annotation_mode=annotation_mode, writeToJson=writeToJson, path=path)
+    return pps, bbs, eBBs
 
-def bbs_to_json(bbs, folder_path):
-    # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
-    bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs[time_stamp]} for time_stamp in bbs.keys()}
-    save_path = os.path.join(folder_path, 'boundingBoxes.json')
-    dict_to_json(save_path, bb_dict) 
-
-def error_bbs_to_json(error_bbs, folder_path):
-    # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
-    error_bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs[time_stamp]} for time_stamp in error_bbs.keys()}
-    save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
-    dict_to_json(save_path, error_bb_dict)
-
-
-
-#########################################################
-#       Functions for error generation
-#########################################################
-def create_distorted_bbs_from_json(detector_stats_path, bb_path, writeToJson=False, folder_path=None):
-    all_bbs = json_to_bb(bb_path)
-    errorGenerator = ErrorGenerator(detector_stats_path)
-    errorBBs = errorGenerator.generate_all_error_BBs(all_bbs)
-    if writeToJson and folder_path:
-        error_bbs_to_json(errorBBs, folder_path)
+#############################################################
+#       Perform full cycle for one time step from pose data
+############################################################
+def perform_one_time_step_poseData(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
+    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
+    annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
+    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
+    return pps, annots, detections
