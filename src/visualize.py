@@ -408,7 +408,7 @@ def visualize_annotations_json(annots_path, image_bounds, classification=True, p
 #
 ###############################################################################################
 
-def find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, duration):
+def find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps):
     '''
     Input:
     - detections (dict): {vesselID: {label: string, 'bbox': BoundingBox, confidenceScore: float}}
