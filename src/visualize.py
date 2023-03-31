@@ -199,7 +199,7 @@ def vessels_in_view_pps(projected_points, image_bounds):
                 break
     return vessels
 
-def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps):
+def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps):
     '''
     Input:
     - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
@@ -212,6 +212,8 @@ def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels
         if len(vessels_in_image) >= display_when_min_vessels:
             frames[round(idiot_time,3)] = {'time': t, 'pps': pps}
             idiot_time += 1/fps
+        if max_time_steps and max_time_steps/fps<float(t):
+            return frames
     return frames
 
 def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
@@ -234,7 +236,7 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         fontsize = 28
         ticks_fontsize = 24
 
-    frames = find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps)
+    frames = find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
 
 
     if len(frames) == 0:
@@ -314,7 +316,7 @@ def vessels_in_view_anns(annotations, image_bounds):
                 break
     return vessels
 
-def find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps):
+def find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps, max_time_steps):
     '''
     Input:
     - annotations (dict): {vesselID: {label: string, 'bbox': BoundingBox}}
@@ -328,6 +330,8 @@ def find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps):
         if len(vessels_in_image) >= display_when_min_vessels:
             frames[round(idiot_time,3)] = {'time': t, 'anns': anns}
             idiot_time += 1/fps
+        if max_time_steps and max_time_steps/fps<float(t):
+            return frames
     return frames
 
 def visualize_annotations(annotations, image_bounds, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
@@ -350,7 +354,7 @@ def visualize_annotations(annotations, image_bounds, classification=True, projec
     
 
 
-    frames = find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps)
+    frames = find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
     if len(frames) == 0:
         print('No frames satisfy the minimum number of vessel requirement')
         return
@@ -408,7 +412,7 @@ def visualize_annotations_json(annots_path, image_bounds, classification=True, p
 #
 ###############################################################################################
 
-def find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps):
+def find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps):
     '''
     Input:
     - detections (dict): {vesselID: {label: string, 'bbox': BoundingBox, confidenceScore: float}}
@@ -428,6 +432,8 @@ def find_frames_detections(detections, annotations, image_bounds, display_when_m
         if len(vessels_in_image) >= display_when_min_vessels:
             frames[round(idiot_time,3)] = {'time': t, 'detections': detections}
             idiot_time += 1/fps
+        if max_time_steps and max_time_steps/fps<float(t):
+            return frames
     return frames
 
 def visualize_detections(detections, image_bounds, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
@@ -448,7 +454,7 @@ def visualize_detections(detections, image_bounds, classification=True, annotati
         fontsize = 28
         ticks_fontsize = 24
 
-    frames = find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps)
+    frames = find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
     if len(frames) == 0:
         print('No frames satisfy the minimum number of vessel requirement')
         return
