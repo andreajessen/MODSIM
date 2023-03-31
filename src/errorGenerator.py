@@ -1,7 +1,8 @@
 from datatypes.boundingBox import BoundingBox
+from datatypes.detection import Detection
 import numpy as np 
 import yaml
-from utils import update_eBBs_json, error_bbs_to_json
+from utils import update_detections_json
 
 class ErrorGenerator:
 
@@ -47,27 +48,25 @@ class ErrorGenerator:
 
         errorBB = BoundingBox(BB.vesselID, new_centre, new_w, new_h, BB.depth)
         return errorBB
-
     
+    def generate_error_label(self, true_label):
+        return true_label
 
     def is_dropout(self):
         # Should BB size affect dropout
         dropout = np.random.choice([True, False], p=[self.drop_out, 1-self.drop_out])
         return dropout
 
-
-    def generate_all_error_BBs(self, bb_dict, writeToJson=False, folder_path=None):
-        '''
-        Input:
-        Dictionary of timestamp: list of BBs
-        '''
-        error_bbs = {time_stamp: list(filter(lambda item: item is not None, [self.generate_error_BB(bb) for bb in bbs])) for time_stamp, bbs in bb_dict.items()}
-        if writeToJson and folder_path:
-            error_bbs_to_json(error_bbs, folder_path)
-        return error_bbs
     
-    def generate_eBBs_t(self, bbs_t, t, writeToJson=False, folder_path=None):
-        error_bbs = list(filter(lambda item: item is not None, [self.generate_error_BB(bb) for bb in bbs_t]))
+    def generate_error(self, annot):
+        eBB = self.generate_error_BB(annot.bb)
+        if not eBB: return None
+        label = self.generate_error_label(annot.label)
+        return Detection(eBB, label, annot.vesselID)
+
+    
+    def generate_detections_t(self, annots_t, t, writeToJson=False, folder_path=None):
+        detections = list(filter(lambda item: item is not None, [self.generate_error(annot) for annot in annots_t]))
         if writeToJson and folder_path:
-            update_eBBs_json(error_bbs, folder_path, t)
-        return error_bbs
+            update_detections_json(detections, folder_path, t)
+        return detections
