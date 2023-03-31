@@ -38,13 +38,30 @@ def get_dict_item(dict, key):
                 return dict[float(key)]
             except KeyError:
                 return dict[int(key)]
+
+def map_timestamp_to_video_time(time_stamps, fps, duration):
+    '''
+    Input:
+    - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
+    - image_bound: (xmax, ymax)
+    '''
+    frames = {}
+    idiot_time = 0.0
+    for t in time_stamps:
+        frames[round(idiot_time,3)] = t
+        idiot_time += 1/fps
+        if idiot_time > duration:
+            return frames
+    return frames
  
 ###############################################################################################
 #
 #               Dynamic scene visualization
 #
 ###############################################################################################
-def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3, skip=0, max_duration=None):
+
+
+def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), y_x_lim=400, fps=3, max_time_steps=None):
     '''
     Creates the plot image for the given time step
     Input:
@@ -54,18 +71,17 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
     - y_x_lim (int): limitation of x and y axis
     '''
     fig, ax = plt.subplots(figsize=figsize)
-    
+
     time_stamps = vessels[0].get_track().get_time_stamps()
+    duration = int(len(time_stamps)/fps) # Because of the idiot FPS that i can't change!!!!
+    if max_time_steps and int(max_time_steps/fps)<duration:
+        duration = int(max_time_steps/fps)
+    
+    frames = map_timestamp_to_video_time(time_stamps, fps, duration)
 
     def make_frame(idiot_time):
-        # Some hack to fix the time stamp index because of
-        # the idiot FPS in videoClip that you can't change!!!!!
-        temp = (int(idiot_time%1*10)-6)/3-1
-        time_index = int((int(idiot_time)+1)*3+temp)
-        time_index = time_index if skip == 0 else time_index*skip
-
         # Get time stamp
-        t = time_stamps[time_index]
+        t = frames[round(idiot_time, 3)]
 
         # Clear
         ax.clear()
@@ -93,11 +109,6 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
         # returning numpy image
         return mplfig_to_npimage(fig)
     # creating animation
-    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
-    if max_duration and max_duration/3<duration:
-        duration = max_duration/3
-    if skip !=0:
-        duration = duration/skip
     animation = VideoClip(make_frame, duration=duration)
     gif_path = os.path.join(folder_path, 'dynamicScene.mp4')
     animation.write_videofile(gif_path,fps=fps)
@@ -107,7 +118,7 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
 #               Camera position visualization
 #
 ###############################################################################################
-def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3, skip=0, max_duration=None):
+def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3, max_time_steps=None):
     '''
     Creates the plot image for the given time step
     Input:
@@ -119,18 +130,16 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
     if not y_x_lim:
         y_x_lim = camera_rig.get_camera_position(0)[0] + 50
     fig, ax = plt.subplots(figsize=figsize)
+
     time_stamps = vessels[0].get_track().get_time_stamps()
+    duration = int(len(time_stamps)/fps) # Because of the idiot FPS that i can't change!!!!
+    if max_time_steps and max_time_steps/fps<duration:
+        duration = max_time_steps/fps
+    frames = map_timestamp_to_video_time(time_stamps, fps, duration)
 
     def make_frame(idiot_time):
-        # Some hack to fix the time stamp index because of
-        # the idiot FPS in videoClip that you can't change!!!!!
-        temp = (int(idiot_time%1*10)-6)/3-1
-        time_index = int((int(idiot_time)+1)*3+temp)
-        time_index = time_index if skip == 0 else time_index*skip
-
-
         # Get time stamp
-        t = time_stamps[time_index]
+        t = frames[round(idiot_time,3)]
 
         # Clear
         ax.clear()
@@ -164,11 +173,6 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
         # returning numpy image
         return mplfig_to_npimage(fig)
     # creating animation
-    duration = int(len(time_stamps)/3) # Because of the idiot FPS that i can't change!!!!
-    if max_duration and max_duration/3<duration:
-        duration = max_duration/3
-    if skip != 0:
-        duration = duration/skip
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'camera_position.mp4')
     animation.write_videofile(gif_path,fps=fps)
@@ -195,7 +199,7 @@ def vessels_in_view_pps(projected_points, image_bounds):
                 break
     return vessels
 
-def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels):
+def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps):
     '''
     Input:
     - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
@@ -207,10 +211,10 @@ def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels
         vessels_in_image = vessels_in_view_pps(pps, image_bounds)
         if len(vessels_in_image) >= display_when_min_vessels:
             frames[round(idiot_time,3)] = {'time': t, 'pps': pps}
-            idiot_time += 1/3
+            idiot_time += 1/fps
     return frames
 
-def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None, display_when_min_vessels=0):
+def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
     '''
     Input:
     all_projected_points (List): List of lists of points for each vessel
@@ -230,7 +234,12 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         fontsize = 28
         ticks_fontsize = 24
 
-    frames = find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels)
+    frames = find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps)
+
+
+    if len(frames) == 0:
+        print('No frames satisfy the minimum number of vessel requirement')
+        return
 
     def make_frame(idiot_time):
         frame = frames[round(idiot_time,3)]
@@ -267,22 +276,21 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
 
         # returning numpy image
         return mplfig_to_npimage(fig)
+    
     # creating animation
-    if len(frames) == 0:
-        print('No frames satisfy the minimum number of vessel requirement')
-        return
-    duration = int(len(frames)/3) # Because of the idiot FPS that i can't change!!!!
-    if max_duration and max_duration/3<duration:
-        duration = max_duration/3
-
+    duration = int(len(frames)/fps) # Because of the idiot FPS that i can't change!!!!
+    if max_time_steps and max_time_steps/fps<duration:
+        duration = max_time_steps/fps
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'projected_points.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
 
-def visualize_projections_json_mov(projected_points_path, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_duration=None, display_when_min_vessels=0):
+def visualize_projections_json_mov(projected_points_path, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+    print('Loading projections from json')
     all_projected_points = json_to_projectedPoints(projected_points_path)
-    visualize_projections_mov(all_projected_points, image_bounds, show_box=show_box, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_duration=max_duration, display_when_min_vessels=display_when_min_vessels)
+    print('Visualizing projections')
+    visualize_projections_mov(all_projected_points, image_bounds, show_box=show_box, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
 
 ###############################################################################################
 #
@@ -306,7 +314,7 @@ def vessels_in_view_anns(annotations, image_bounds):
                 break
     return vessels
 
-def find_frames_anns(annotations, image_bounds, display_when_min_vessels):
+def find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps):
     '''
     Input:
     - annotations (dict): {vesselID: {label: string, 'bbox': BoundingBox}}
@@ -319,10 +327,10 @@ def find_frames_anns(annotations, image_bounds, display_when_min_vessels):
         vessels_in_image = vessels_in_view_anns(anns, image_bounds)
         if len(vessels_in_image) >= display_when_min_vessels:
             frames[round(idiot_time,3)] = {'time': t, 'anns': anns}
-            idiot_time += 1/3
+            idiot_time += 1/fps
     return frames
 
-def visualize_annotations(annotations, image_bounds, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_duration=None, display_when_min_vessels=0):
+def visualize_annotations(annotations, image_bounds, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -339,8 +347,13 @@ def visualize_annotations(annotations, image_bounds, classification=True, projec
         fig, ax = plt.subplots(figsize=figsize)
         fontsize = 28
         ticks_fontsize = 24
+    
 
-    frames = find_frames_anns(annotations, image_bounds, display_when_min_vessels)
+
+    frames = find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps)
+    if len(frames) == 0:
+        print('No frames satisfy the minimum number of vessel requirement')
+        return
 
     def make_frame(idiot_time):
         frame = frames[round(idiot_time,3)]
@@ -376,21 +389,18 @@ def visualize_annotations(annotations, image_bounds, classification=True, projec
         # returning numpy image
         return mplfig_to_npimage(fig)
     # creating animation
-    if len(frames) == 0:
-        print('No frames satisfy the minimum number of vessel requirement')
-        return
-    duration = int(len(frames)/3) # Because of the idiot FPS that i can't change!!!!
-    if max_duration and max_duration/3<duration:
-        duration = max_duration/3
+    duration = int(len(frames)/fps) # Because of the idiot FPS that i can't change!!!!
+    if max_time_steps and max_time_steps/fps<duration:
+        duration = max_time_steps/fps
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'annotations.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_annotations_json(annots_path, image_bounds, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_duration=None, display_when_min_vessels=0):
+def visualize_annotations_json(annots_path, image_bounds, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
     all_annots = json_to_annot(annots_path)
     all_pps = json_to_projectedPoints(pps_path) if (pps_path and show_projected_points) else None
     
-    visualize_annotations(all_annots, image_bounds, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, folder_path=folder_path, fps=fps, max_duration=max_duration, display_when_min_vessels=display_when_min_vessels)
+    visualize_annotations(all_annots, image_bounds, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, folder_path=folder_path, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
 
 ###############################################################################################
 #
@@ -398,7 +408,7 @@ def visualize_annotations_json(annots_path, image_bounds, classification=True, p
 #
 ###############################################################################################
 
-def find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels):
+def find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, duration):
     '''
     Input:
     - detections (dict): {vesselID: {label: string, 'bbox': BoundingBox, confidenceScore: float}}
@@ -411,16 +421,16 @@ def find_frames_detections(detections, annotations, image_bounds, display_when_m
         # Include all frames
         for t, detections in detections.items():
             frames[round(idiot_time,3)] = {'time': t, 'detections': detections}
-            idiot_time += 1/3
+            idiot_time += 1/fps
         return frames
     for t, detections in detections.items():
         vessels_in_image = vessels_in_view_anns(annotations[t], image_bounds)
         if len(vessels_in_image) >= display_when_min_vessels:
             frames[round(idiot_time,3)] = {'time': t, 'detections': detections}
-            idiot_time += 1/3
+            idiot_time += 1/fps
     return frames
 
-def visualize_detections(detections, image_bounds, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_duration=None):
+def visualize_detections(detections, image_bounds, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -438,7 +448,11 @@ def visualize_detections(detections, image_bounds, classification=True, annotati
         fontsize = 28
         ticks_fontsize = 24
 
-    frames = find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels)
+    frames = find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps)
+    if len(frames) == 0:
+        print('No frames satisfy the minimum number of vessel requirement')
+        return
+    
     def make_frame(idiot_time):
         # Some hack to fix the time stamp index because of
         # the idiot FPS in videoClip that you can't change!!!!!
@@ -478,17 +492,14 @@ def visualize_detections(detections, image_bounds, classification=True, annotati
         # returning numpy image
         return mplfig_to_npimage(fig)
     # creating animation
-    if len(frames) == 0:
-        print('No frames satisfy the minimum number of vessel requirement')
-        return
-    duration = int(len(frames)/3) # Because of the idiot FPS that i can't change!!!!
-    if max_duration and max_duration/3<duration:
-        duration = max_duration/3
+    duration = int(len(frames)/fps) # Because of the idiot FPS that i can't change!!!!
+    if max_time_steps and max_time_steps/fps<duration:
+        duration = max_time_steps/fps
     animation = VideoClip(make_frame, duration = duration)
     gif_path = os.path.join(folder_path, 'detections.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_detections_json(detections_path, image_bounds, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_duration=None, display_when_min_vessels=0):
+def visualize_detections_json(detections_path, image_bounds, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = json_to_detection(detections_path)
     annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
-    visualize_detections(detections, image_bounds,  annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_duration=max_duration)
+    visualize_detections(detections, image_bounds,  annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
