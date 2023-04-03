@@ -111,8 +111,8 @@ class VirtualCamera:
         return np.array(projected_points)
     
     def get_orientation_vector(self):
-        y = round(np.cos(np.pi/2-(self.yaw_wcf + self.yaw_vcf)),5)
-        x = round(np.cos(self.yaw_wcf + self.yaw_vcf),5)
+        y = round(np.cos(np.pi/2-(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf)),5)
+        x = round(np.cos(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf),5)
         return np.array([x,y])
     
     def get_horizon(self):
