@@ -12,12 +12,13 @@ class CameraRig:
     def __init__(self, camera, vessel=None):
         self.camera = camera
         self.vessel = vessel
+        self.horizon = {}
     
     def take_photo(self, vessel_points, timestamp):
         if self.vessel:
             track = self.vessel.get_track()
             self.camera.update_camera_world_pos(track.get_position(timestamp), track.get_heading_rad(timestamp), self.vessel.get_rotation_matrix(timestamp))
-        
+        self.horizon[timestamp] = self.camera.get_horizon()
         return self.camera.project_points(vessel_points)
     
     def get_camera_position(self, timestamp):
