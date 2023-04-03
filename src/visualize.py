@@ -216,7 +216,7 @@ def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels
             return frames
     return frames
 
-def visualize_projections_mov(all_projected_points, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_mov(all_projected_points, image_bounds, horizon=None, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
     '''
     Input:
     all_projected_points (List): List of lists of points for each vessel
@@ -250,6 +250,9 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
         projected_points = frame['pps']
         # Clear
         ax.clear()
+        if horizon:
+            horizon_points = horizon[int(t)]
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
         for pps in projected_points.values():
             vessel_x = np.array([point.image_coordinate[0] for point in pps if point.depth>=0])
             vessel_y = np.array([point.image_coordinate[1] for point in pps if point.depth>=0])
@@ -288,11 +291,11 @@ def visualize_projections_mov(all_projected_points, image_bounds, show_box=True,
     animation.write_videofile(gif_path,fps=fps)
 
 
-def visualize_projections_json_mov(projected_points_path, image_bounds, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_json_mov(projected_points_path, image_bounds, horizon=None, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
     print('Loading projections from json')
     all_projected_points = json_to_projectedPoints(projected_points_path)
     print('Visualizing projections')
-    visualize_projections_mov(all_projected_points, image_bounds, show_box=show_box, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
+    visualize_projections_mov(all_projected_points, image_bounds, horizon, show_box=show_box, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
 
 ###############################################################################################
 #
