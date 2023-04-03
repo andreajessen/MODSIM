@@ -115,3 +115,11 @@ class VirtualCamera:
         x = round(np.cos(self.yaw_wcf + self.yaw_vcf),5)
         return np.array([x,y])
     
+    def get_horizon(self):
+        cam_pos = self.get_position_wcf()
+        point_at_horizon1 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 10000 + np.array([1, 1])
+        point_at_horizon2 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 10000 - np.array([1, 1])
+        point1 = np.append(point_at_horizon1, 0)
+        point2 = np.append(point_at_horizon2, 0)
+        horizon_points = self.project_points([point1, point2])
+        return horizon_points
