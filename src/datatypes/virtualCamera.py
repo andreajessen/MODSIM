@@ -58,7 +58,7 @@ class VirtualCamera:
 
     def update_camera_world_pos(self, position_wcf, yaw_wcf, vcf_wcf_rotation_matrix):
         self.position_wcf = vcf_wcf_rotation_matrix.dot(self.position_nvcf) + position_wcf
-        self.yaw_wcf = self.yaw_nvcf + yaw_wcf
+        self.yaw_wcf = yaw_wcf
         self.calculate_projection_matrix()
 
     def add_wave_motion(self, roll_wvcf, pitch_wvcf, yaw_wvcf):
@@ -78,7 +78,7 @@ class VirtualCamera:
     
     def calculate_rotation_matrix(self):
         R_roll = np.round(np.array([[np.cos(self.roll_wcf + self.roll_nvcf + self.roll_wvcf), -np.sin(self.roll_wcf + self.roll_nvcf + self.roll_wvcf), 0], [np.sin(self.roll_wcf + self.roll_nvcf + self.roll_wvcf), np.cos(self.roll_wcf + self.roll_nvcf + self.roll_wvcf), 0], [0,0,1]]),5)
-        R_yaw = np.round(np.array([[np.cos(self.yaw_wcf + self.yaw_nvcf + self.yaw_nvcf + self.yaw_wvcf), 0, np.sin(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf)],[0,1,0],[-np.sin(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf), 0, np.cos(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf)]]),5)
+        R_yaw = np.round(np.array([[np.cos(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf), 0, np.sin(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf)],[0,1,0],[-np.sin(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf), 0, np.cos(self.yaw_wcf + self.yaw_nvcf + self.yaw_wvcf)]]),5)
         R_pitch = np.round(np.array([[1, 0, 0], [0, np.cos(self.pitch_wcf + self.pitch_nvcf + self.pitch_wvcf), -np.sin(self.pitch_wcf + self.pitch_nvcf + self.pitch_wvcf)], [0, np.sin(self.pitch_wcf + self.pitch_nvcf + self.pitch_wvcf), np.cos(self.pitch_wcf + self.pitch_nvcf + self.pitch_wvcf)]]),5)
         # np.round to 5 decimals because the number π cannot be represented exactly as a floating-point number.
         R_orientation = R_roll.dot(R_pitch.dot(R_yaw))
