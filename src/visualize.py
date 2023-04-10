@@ -338,7 +338,7 @@ def find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps, m
             return frames
     return frames
 
-def visualize_annotations(annotations, image_bounds, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
+def visualize_annotations(annotations, image_bounds, horizon=None, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -369,7 +369,9 @@ def visualize_annotations(annotations, image_bounds, classification=True, projec
         t = frame['time']
         # Clear
         ax.clear()
-
+        if horizon:
+            horizon_points = horizon[int(t)]
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
         for vesselID, annot in annotations_t.items():
             bb = annot['bbox']
             xs, ys = bb.get_points_for_visualizing()
@@ -405,11 +407,11 @@ def visualize_annotations(annotations, image_bounds, classification=True, projec
     gif_path = os.path.join(folder_path, 'annotations.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_annotations_json(annots_path, image_bounds, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
+def visualize_annotations_json(annots_path, image_bounds, horizon=None, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
     all_annots = json_to_annot(annots_path)
     all_pps = json_to_projectedPoints(pps_path) if (pps_path and show_projected_points) else None
     
-    visualize_annotations(all_annots, image_bounds, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, folder_path=folder_path, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
+    visualize_annotations(all_annots, image_bounds, horizon=horizon, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, folder_path=folder_path, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
 
 ###############################################################################################
 #
@@ -441,7 +443,7 @@ def find_frames_detections(detections, annotations, image_bounds, display_when_m
             return frames
     return frames
 
-def visualize_detections(detections, image_bounds, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
+def visualize_detections(detections, image_bounds, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -474,6 +476,9 @@ def visualize_detections(detections, image_bounds, classification=True, annotati
         detections_t = frame['detections']
         # Clear
         ax.clear()
+        if horizon:
+            horizon_points = horizon[int(t)]
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
         if show_annotations:
             if not annotations:
                 print("Provide original BBs when show original BBs is true")
@@ -512,7 +517,7 @@ def visualize_detections(detections, image_bounds, classification=True, annotati
     gif_path = os.path.join(folder_path, 'detections.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_detections_json(detections_path, image_bounds, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+def visualize_detections_json(detections_path, image_bounds, horizon=None, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = json_to_detection(detections_path)
     annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
-    visualize_detections(detections, image_bounds,  annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+    visualize_detections(detections, image_bounds, horizon=horizon, annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
