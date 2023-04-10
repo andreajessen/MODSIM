@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
 import numpy as np
 import os
 # importing movie py libraries
@@ -373,6 +374,7 @@ def visualize_annotations(annotations, image_bounds, classification=True, projec
             bb = annot['bbox']
             xs, ys = bb.get_points_for_visualizing()
             ax.plot(xs, ys, '-', color=get_color(vesselID))
+            ax.fill(xs, ys, color=get_color(vesselID))
             if classification:
                 ax.text(xs[1], ys[0]-5, annot['label'], color=get_color(vesselID))
             if show_projected_points:
@@ -480,11 +482,13 @@ def visualize_detections(detections, image_bounds, classification=True, annotati
                 for vesselID, annot in annotations_t.items():
                     xs, ys = annot['bbox'].get_points_for_visualizing()
                     ax.plot(xs, ys, '-', color='lightgrey')
+                    ax.fill(xs, ys, color='lightgrey')
                     if classification:
                         ax.text(xs[1], ys[0]-5, annot['label'], color='lightgrey')
         for vesselID, detection in detections_t.items():
             xs, ys = detection['bbox'].get_points_for_visualizing()
             ax.plot(xs, ys, '-', color=get_color(vesselID))
+            ax.fill(xs, ys, color=get_color(vesselID))
             if classification:
                 text = f"{detection['label']} {detection['confidenceScore']}" if detection['confidenceScore'] else f"{detection['label']}"
                 ax.text(xs[1], ys[0]-5, text, color=get_color(vesselID))
