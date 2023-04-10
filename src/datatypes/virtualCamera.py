@@ -122,4 +122,11 @@ class VirtualCamera:
         point1 = np.append(point_at_horizon1, 0)
         point2 = np.append(point_at_horizon2, 0)
         horizon_points = self.project_points([point1, point2])
+        while np.array_equal(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate):
+            print('Horizon points are equal, find a new one')
+            numb = np.random.randint(200, 2000)
+            point_at_horizon2 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 100000 - np.array([numb, numb])
+            point2 = np.append(point_at_horizon2, 0)
+            horizon_points = self.project_points([point1, point2])
+
         return horizon_points
