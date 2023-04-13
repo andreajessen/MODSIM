@@ -26,9 +26,9 @@ class WaveMotion:
         self.yaw_a = 0.99
         self.yaw_b = 0.99
 
-        self.roll_sigma = 0.0005
-        self.pitch_sigma = 0.0001
-        self.yaw_sigma = 0.00001
+        self.roll_sigma = 0.00005
+        self.pitch_sigma = 0.00003
+        self.yaw_sigma = 0.000015
 
     def generate_wave(self):
         self.roll_1 = self.roll_a*self.roll_1 + np.random.normal(scale=self.roll_sigma)
