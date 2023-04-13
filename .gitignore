@@ -133,3 +133,4 @@ dmypy.json
 
 # Simulations
 /src/boats_in_fishtank/simulation/
+/src/simulations/
