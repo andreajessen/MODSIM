@@ -252,7 +252,7 @@ def visualize_projections_mov(all_projected_points, image_bounds, horizon=None, 
         # Clear
         ax.clear()
         if horizon:
-            horizon_points = horizon[int(t)]
+            horizon_points = get_dict_item(horizon,t)
             ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
         for pps in projected_points.values():
             vessel_x = np.array([point.image_coordinate[0] for point in pps if point.depth>=0])
@@ -370,7 +370,7 @@ def visualize_annotations(annotations, image_bounds, horizon=None, classificatio
         # Clear
         ax.clear()
         if horizon:
-            horizon_points = horizon[int(t)]
+            horizon_points = get_dict_item(horizon,t)
             ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
         for vesselID, annot in annotations_t.items():
             bb = annot['bbox']
@@ -477,7 +477,7 @@ def visualize_detections(detections, image_bounds, horizon=None, classification=
         # Clear
         ax.clear()
         if horizon:
-            horizon_points = horizon[int(t)]
+            horizon_points = get_dict_item(horizon,t)
             ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
         if show_annotations:
             if not annotations:
