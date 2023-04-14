@@ -16,3 +16,22 @@ confusionMatrix:
   FP: 0.2
   TP: 0.8
   TN: 0.8
+
+labels: # Possible classifications
+  - sailboat
+  - motorboat
+  - ferry
+
+confusionMatrixLabels: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
+  sailboat: 
+    - 0.8
+    - 0.19
+    - 0.01
+  motorboat:
+    - 0.1
+    - 0.85
+    - 0.05
+  ferry:
+    - 0.09
+    - 0.01
+    - 0.9
