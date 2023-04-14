@@ -25,6 +25,9 @@ class ErrorGenerator:
 
         self.sigma_w = data_loaded['errorStats']['sigma_w'] # Standard deviation
         self.mu_w = data_loaded['errorStats']['mu_w'] # Expected value
+
+        self.possible_labels = data_loaded['labels'] #Possible classification labels
+        self.confusion_matrix_labels = data_loaded['confusionMatrixLabels']
     
 
     def generate_error_BB(self, BB: BoundingBox):
@@ -50,7 +53,8 @@ class ErrorGenerator:
         return errorBB
     
     def generate_error_label(self, true_label):
-        return true_label
+        pred_label = np.random.choice(self.possible_labels, p=self.confusion_matrix_labels[true_label])
+        return pred_label
 
     def is_dropout(self):
         # Should BB size affect dropout
