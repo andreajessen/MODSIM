@@ -35,3 +35,5 @@ confusionMatrixLabels: # IMPORTANT! The values for the confusion matrix must be 
     - 0.09
     - 0.01
     - 0.9
+
+confidenceThreshold: 0.34 #Confidence threshold used by the detector

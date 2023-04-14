@@ -28,6 +28,8 @@ class ErrorGenerator:
 
         self.possible_labels = data_loaded['labels'] #Possible classification labels
         self.confusion_matrix_labels = data_loaded['confusionMatrixLabels']
+
+        self.confidence_threshold = data_loaded['confidenceThreshold']
     
 
     def generate_error_BB(self, BB: BoundingBox):
@@ -55,6 +57,16 @@ class ErrorGenerator:
     def generate_error_label(self, true_label):
         pred_label = np.random.choice(self.possible_labels, p=self.confusion_matrix_labels[true_label])
         return pred_label
+    
+    def generate_confidence_score(self):
+        # Confidence score should maybe be rounded to 2 or 3 decimals
+        # Analyze the confidence scores of yolov8 to determine a probability distribution
+        confidence_score = np.random.normal(0.67, 0.10)
+        if confidence_score < self.confidence_threshold:
+            confidence_score = self.confidence_threshold
+        elif confidence_score > 1:
+            confidence_score = 1
+        return confidence_score
 
     def is_dropout(self):
         # Should BB size affect dropout
@@ -66,7 +78,8 @@ class ErrorGenerator:
         eBB = self.generate_error_BB(annot.bb)
         if not eBB: return None
         label = self.generate_error_label(annot.label)
-        return Detection(eBB, label, annot.vesselID)
+        confidence_score = self.generate_confidence_score()
+        return Detection(eBB, label, annot.vesselID, confidence_score)
 
     
     def generate_detections_t(self, annots_t, t, writeToJson=False, folder_path=None):
