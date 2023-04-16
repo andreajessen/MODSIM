@@ -59,8 +59,9 @@ class ErrorGenerator:
         return pred_label
     
     def generate_confidence_score(self):
-        # Confidence score should maybe be rounded to 2 or 3 decimals
+        # Confidence score should maybe be rounded to 2 or 3 decimals?
         # Analyze the confidence scores of yolov8 to determine a probability distribution
+        # Should confidence score be dependent on size and visibility of the bounding box?
         confidence_score = np.random.normal(0.67, 0.10)
         if confidence_score < self.confidence_threshold:
             confidence_score = self.confidence_threshold
