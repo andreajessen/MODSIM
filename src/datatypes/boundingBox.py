@@ -7,6 +7,7 @@ class BoundingBox:
         self.width = width
         self.height = height
         self.depth = depth
+        self.visibility = 1.0
 
     def get_xmin(self):
         return self.centre[0]-self.width/2
@@ -117,3 +118,34 @@ class BoundingBox:
         xs = [cx-w/2, cx-w/2, cx+w/2, cx+w/2, cx-w/2] 
         ys = [cy-h/2, cy+h/2, cy+h/2, cy-h/2, cy-h/2]
         return xs, ys
+    
+    def update_visibility(self, covering_bbs):
+        total_area = self.height * self.width
+        total_covered_area = 0
+        sorted_bbs = sorted(covering_bbs, key=lambda bb: bb.depth, reverse=False)
+        overlapping_areas = []
+        for bb in sorted_bbs:
+            overlap_bb, overlap_area = self.find_overlapping_area(bb)
+            if len(overlapping_areas) > 0:
+                for overlap in overlapping_areas:
+                    if overlap_bb.check_overlap(overlap):
+                        _, area = overlap_bb.find_overlapping_area(overlap)
+                        overlap_area -= area
+            total_covered_area += overlap_area
+            overlapping_areas.append(overlap_bb)
+        self.visibility = 1 - total_covered_area/total_area
+    
+    def find_overlapping_area(self, bb):
+        overlap_xmax = np.min(np.array([self.get_xmax(), bb.get_xmax()]))
+        overlap_xmin = np.max(np.array([self.get_xmin(), bb.get_xmin()]))
+        overlap_ymax = np.min(np.array([self.get_ymax(), bb.get_ymax()]))
+        overlap_ymin = np.max(np.array([self.get_ymin(), bb.get_ymin()]))
+
+        x_overlap = overlap_xmax - overlap_xmin
+        y_overlap = overlap_ymax - overlap_ymin
+        overlap_area = x_overlap * y_overlap
+
+        overlap_centre = [overlap_xmin + x_overlap/2, overlap_ymin + overlap_ymin/2]
+
+        overlap_bb = BoundingBox(None, overlap_centre, x_overlap, y_overlap, None)
+        return overlap_bb, overlap_area

@@ -252,10 +252,12 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
         for j in range(i+1, len(bounding_boxes)):
             if bb.check_fully_covered(sorted_bbs[j]):
                 fully_covered = True
-            elif bb.check_overlap(sorted_bbs[j]) and annotation_mode==2:
+            elif bb.check_overlap(sorted_bbs[j]):
                 covering_bbs.append(sorted_bbs[j])
         if len(covering_bbs) > 0:
-            bb.update_bb_if_covered(covering_bbs)
+            bb.update_visibility(covering_bbs)
+            if annotation_mode == 2:
+                bb.update_bb_if_covered(covering_bbs)
         if not fully_covered:
             bbs.append(bb)
     bbs.append(sorted_bbs[-1])
