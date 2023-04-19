@@ -29,7 +29,7 @@ class TemporalModel:
         return self.states[self.current_state].get_dropout()
 
     
-    def perform_one_time_step(self, t, log=True):
+    def perform_one_time_step(self, t, log=False):
         # Add current state to previous states memory
         self.previous_states[t] = self.current_state
 

@@ -88,7 +88,7 @@ class ErrorGenerator:
         return Detection(eBB, label, annot.vesselID)
 
     
-    def generate_detections_t(self, annots_t, t, writeToJson=False, folder_path=None, log=True):
+    def generate_detections_t(self, annots_t, t, writeToJson=False, folder_path=None, log=False):
         detections = list(filter(lambda item: item is not None, [self.generate_error(annot) for annot in annots_t]))
         self.temporal_model.perform_one_time_step(t, log)
         if writeToJson and folder_path:
