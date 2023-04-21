@@ -11,12 +11,12 @@
 from datatypes.waveMotion import WaveMotion
 
 class CameraRig:
-    def __init__(self, camera, vessel=None, include_wave=True):
+    def __init__(self, camera, vessel=None, include_wave=True, wave_size=1):
         self.camera = camera
         self.vessel = vessel
         self.include_wave = include_wave
         if self.include_wave:
-            self.wave_motion = WaveMotion()    
+            self.wave_motion = WaveMotion(wave_size)    
         self.horizon = {}
     
     def take_photo(self, vessel_points, timestamp):

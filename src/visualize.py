@@ -443,7 +443,7 @@ def find_frames_detections(detections, annotations, image_bounds, display_when_m
             return frames
     return frames
 
-def visualize_detections(detections, image_bounds, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
+def visualize_detections(detections, image_bounds, temporal_state_history=None, temporal_state_names=None, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -505,7 +505,13 @@ def visualize_detections(detections, image_bounds, horizon=None, classification=
         ax.set_xlabel('x', fontsize = fontsize)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
-        ax.set_title(f'Detections at time {t}', fontsize=fontsize)
+        if temporal_state_history and temporal_state_names:
+            current_state = get_dict_item(temporal_state_history, t)
+            state_name = get_dict_item(temporal_state_names, current_state)
+            title = f'Detections at time {t}. In state {current_state}: {state_name}'
+        else:
+            title = f'Detections at time {t}'
+        ax.set_title(title, fontsize=fontsize)
 
         # returning numpy image
         return mplfig_to_npimage(fig)
@@ -517,7 +523,7 @@ def visualize_detections(detections, image_bounds, horizon=None, classification=
     gif_path = os.path.join(folder_path, 'detections.mp4')
     animation.write_videofile(gif_path,fps=fps)
 
-def visualize_detections_json(detections_path, image_bounds, horizon=None, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+def visualize_detections_json(detections_path, image_bounds, temporal_state_history=None, temporal_state_names=None, horizon=None, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = json_to_detection(detections_path)
     annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
-    visualize_detections(detections, image_bounds, horizon=horizon, annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+    visualize_detections(detections, image_bounds, temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)

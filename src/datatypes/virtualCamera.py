@@ -117,16 +117,20 @@ class VirtualCamera:
     
     def get_horizon(self):
         cam_pos = self.get_position_wcf()
-        point_at_horizon1 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 100000 + np.array([100, 100])
-        point_at_horizon2 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 100000 - np.array([100, 100])
+        point_at_horizon1 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 1000000 + np.array([1000000, 1000000])
+        point_at_horizon2 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 1000000 - np.array([1000000, 1000000])
         point1 = np.append(point_at_horizon1, 0)
         point2 = np.append(point_at_horizon2, 0)
         horizon_points = self.project_points([point1, point2])
-        while np.array_equal(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate):
-            print('Horizon points are equal, find a new one')
-            numb = np.random.randint(200, 2000)
-            point_at_horizon2 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 100000 - np.array([numb, numb])
+        # So that we won't be stuck in an infinite loop
+        i = 0
+        while (np.array_equal(np.round(horizon_points[0].image_coordinate), np.round(horizon_points[1].image_coordinate)) and i < 5):
+            i += 1
+            print(f'Horizon points are equal, find a new one {horizon_points[0].image_coordinate}, {horizon_points[1].image_coordinate}')
+            numb = np.random.randint(3000000, 100000000)
+            point_at_horizon2 = np.array([cam_pos[0], cam_pos[1]]) + self.get_orientation_vector() * 1000000 - np.array([numb, numb])
             point2 = np.append(point_at_horizon2, 0)
             horizon_points = self.project_points([point1, point2])
+        #print(f'i: {i} Found points {horizon_points[0].image_coordinate}, {horizon_points[1].image_coordinate}')
 
         return horizon_points

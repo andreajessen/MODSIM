@@ -16,3 +16,11 @@ confusionMatrix:
   FP: 0.2
   TP: 0.8
   TN: 0.8
+
+transitionMatrix: [[0.2, 0.2, 0.2],[0.6, 0.6, 0.6],[0.2, 0.2, 0.2] ]
+
+detectionConditions:
+  precipitation: 0.0 # Includes  rain, snow, sleet, and hail
+  fog: 0.9
+  wind: 0
+  darkness: 1 # Day, night, dusk, dawn
