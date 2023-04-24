@@ -138,7 +138,7 @@ class ErrorGenerator:
             return self.generate_error_class(annot)
         return self.generate_error_detection(annot)
 
-    def generate_detections_t(self, annots_t, t, image_bounds, horizon, writeToJson=False, filename=None):
+    def generate_detections_t(self, annots_t, t, image_bounds, horizon, writeToJson=False, filename=None, log=False):
         detections = list(filter(lambda item: item is not None, [self.generate_error(annot) for annot in annots_t]))
         false_detections = self.generate_false_positives(image_bounds, horizon, len(detections))
         if false_detections:
