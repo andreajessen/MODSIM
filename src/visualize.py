@@ -3,7 +3,7 @@ from matplotlib.patches import Polygon
 import numpy as np
 import os
 # importing movie py libraries
-from moviepy.editor import VideoClip
+from moviepy.editor import VideoClip, clips_array
 from moviepy.video.io.bindings import mplfig_to_npimage
 from utils import json_to_projectedPoints, json_to_annot, json_to_detection
 
@@ -200,6 +200,30 @@ def vessels_in_view_pps(projected_points, image_bounds):
                 break
     return vessels
 
+def find_frames_pps_multiple_cameras(cameraIDs, all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps):
+    '''
+    Input:
+    - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
+    - image_bound: (xmax, ymax)
+    '''
+    frames_cam = {cameraID: {} for cameraID in cameraIDs}
+    idiot_time = 0.0
+    for t in all_projected_points[cameraIDs[0]].keys():
+        vessels_in_image = 0 
+        for cameraID in cameraIDs:
+            vessels_in_image_cam = vessels_in_view_pps(all_projected_points[cameraID][t], image_bounds[cameraID])
+            if len(vessels_in_image_cam) > vessels_in_image:
+                vessels_in_image = len(vessels_in_image_cam)
+        if vessels_in_image >= display_when_min_vessels:
+            frame_time = round(idiot_time,3)
+            for cameraID in cameraIDs:
+                frames_cam[cameraID][frame_time] = {'time': t, 'pps': all_projected_points[cameraID][t]}
+            idiot_time += 1/fps
+        if max_time_steps and max_time_steps/fps<float(t):
+            return frames_cam
+    return frames_cam
+
+
 def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps):
     '''
     Input:
@@ -217,7 +241,7 @@ def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels
             return frames
     return frames
 
-def visualize_projections_mov(all_projected_points, image_bounds, horizon=None, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_mov(all_projected_points, image_bounds, display_frames=None, horizon=None, show_box=True, fastplot=False, filename='./pps.mp4', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
     '''
     Input:
     all_projected_points (List): List of lists of points for each vessel
@@ -237,7 +261,7 @@ def visualize_projections_mov(all_projected_points, image_bounds, horizon=None, 
         fontsize = 28
         ticks_fontsize = 24
 
-    frames = find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    frames = display_frames if display_frames else find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
 
 
     if len(frames) == 0:
@@ -288,16 +312,29 @@ def visualize_projections_mov(all_projected_points, image_bounds, horizon=None, 
     if max_time_steps and max_time_steps/fps<duration:
         duration = max_time_steps/fps
     animation = VideoClip(make_frame, duration = duration)
-    gif_path = os.path.join(folder_path, 'projected_points.mp4')
-    animation.write_videofile(gif_path,fps=fps)
+    animation.write_videofile(filename,fps=fps)
+    return animation
 
 
-def visualize_projections_json_mov(projected_points_path, image_bounds, horizon=None, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_json_mov(projected_points_path, image_bounds, display_frames = None, horizon=None, show_box=True, fastplot=False, filename='./pps.mp4', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
     print('Loading projections from json')
     all_projected_points = json_to_projectedPoints(projected_points_path)
     print('Visualizing projections')
-    visualize_projections_mov(all_projected_points, image_bounds, horizon, show_box=show_box, fastplot=fastplot, folder_path=folder_path, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
+    return visualize_projections_mov(all_projected_points, image_bounds, horizon=horizon, display_frames=display_frames, show_box=show_box, fastplot=fastplot, filename=filename, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
 
+
+def visualize_projections_multiple_cameras(camera_ids, projected_points_path, image_bounds, horizons=None, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+    all_projected_points = {cameraID: json_to_projectedPoints(projected_points_path[cameraID]) for cameraID in camera_ids}
+    frames = find_frames_pps_multiple_cameras(camera_ids, all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    clips = []
+    for cameraID in camera_ids:
+        horizon = horizons[cameraID] if horizons else None
+        filename = os.path.join(folder_path, f'projectedPoints_C{cameraID}.mp4')
+        animation = visualize_projections_json_mov(projected_points_path[cameraID], image_bounds[cameraID], display_frames=frames[cameraID], horizon=horizon, show_box=show_box, fastplot=fastplot, filename=filename, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
+        clips.append(animation)
+    final = clips_array([clips])
+    filepath = os.path.join(folder_path, f'projectedPoints.mp4')
+    final.write_videofile(filepath,fps=fps)
 ###############################################################################################
 #
 #               Bounding box visualization
@@ -338,7 +375,30 @@ def find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps, m
             return frames
     return frames
 
-def visualize_annotations(annotations, image_bounds, horizon=None, classification=True, projected_points=None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
+def find_frames_anns_multiple_cameras(cameraIDs, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps):
+    '''
+    Input:
+    - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
+    - image_bound: (xmax, ymax)
+    '''
+    frames_cam = {cameraID: {} for cameraID in cameraIDs}
+    idiot_time = 0.0
+    for t, anns in annotations[cameraIDs[0]].items():
+        vessels_in_image = 0 
+        for cameraID in cameraIDs:
+            vessels_in_image_cam = vessels_in_view_anns(annotations[cameraID][t], image_bounds[cameraID])
+            if len(vessels_in_image_cam) > vessels_in_image:
+                vessels_in_image = len(vessels_in_image_cam)
+        if vessels_in_image >= display_when_min_vessels:
+            frame_time = round(idiot_time,3)
+            for cameraID in cameraIDs:
+                frames_cam[cameraID][frame_time] = {'time': t, 'anns': annotations[cameraID][t]}
+            idiot_time += 1/fps
+        if max_time_steps and max_time_steps/fps<float(t):
+            return frames_cam
+    return frames_cam
+
+def visualize_annotations(annotations, image_bounds, display_frames = None, horizon=None, classification=True, projected_points=None, show_projected_points=False, fastplot=False, filename='./gifs.mp4', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -358,7 +418,7 @@ def visualize_annotations(annotations, image_bounds, horizon=None, classificatio
     
 
 
-    frames = find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    frames = display_frames if display_frames else find_frames_anns(annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
     if len(frames) == 0:
         print('No frames satisfy the minimum number of vessel requirement')
         return
@@ -404,14 +464,33 @@ def visualize_annotations(annotations, image_bounds, horizon=None, classificatio
     if max_time_steps and max_time_steps/fps<duration:
         duration = max_time_steps/fps
     animation = VideoClip(make_frame, duration = duration)
-    gif_path = os.path.join(folder_path, 'annotations.mp4')
-    animation.write_videofile(gif_path,fps=fps)
+    animation.write_videofile(filename,fps=fps)
+    return animation
 
-def visualize_annotations_json(annots_path, image_bounds, horizon=None, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
+def visualize_annotations_json(annots_path, image_bounds, display_frames=None, horizon=None, classification=True, pps_path = None, show_projected_points=False, fastplot=False, filename='annot.mp4', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
     all_annots = json_to_annot(annots_path)
     all_pps = json_to_projectedPoints(pps_path) if (pps_path and show_projected_points) else None
+    return visualize_annotations(all_annots, image_bounds, display_frames=display_frames, horizon=horizon, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, filename=filename, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
+
+def visualize_annotations_multiple_cameras(camera_ids, annots_path, image_bounds, horizons=None, classification=True, pps_path = None, show_projected_points=False, fastplot=False, folder_path='./gifs/', fps=3, max_time_steps=None, display_when_min_vessels=0, step=1):
+    all_annots = {cameraID: json_to_annot(annots_path[cameraID]) for cameraID in camera_ids}
     
-    visualize_annotations(all_annots, image_bounds, horizon=horizon, classification=classification, projected_points=all_pps, show_projected_points=show_projected_points, fastplot=fastplot, folder_path=folder_path, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
+    frames = find_frames_anns_multiple_cameras(camera_ids, all_annots, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    if len(frames) == 0:
+        print('No frames satisfy the minimum number of vessel requirement')
+        return
+    clips = []
+    for cameraID in camera_ids:
+        filename = os.path.join(folder_path, f'annotations_C{cameraID}.mp4')
+        horizon = horizons[cameraID] if horizons else None
+        pps_path = pps_path[cameraID] if pps_path else None
+        animation = visualize_annotations_json(annots_path[cameraID], image_bounds[cameraID], display_frames = frames[cameraID], horizon=horizon, classification=classification, pps_path = pps_path, show_projected_points=show_projected_points, fastplot=fastplot, filename=filename, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
+        clips.append(animation)
+    final = clips_array([clips])
+    filepath = os.path.join(folder_path, f'annotations.mp4')
+    final.write_videofile(filepath,fps=fps)
+
+
 
 ###############################################################################################
 #
@@ -443,7 +522,38 @@ def find_frames_detections(detections, annotations, image_bounds, display_when_m
             return frames
     return frames
 
-def visualize_detections(detections, image_bounds, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None):
+def find_frames_detections_multiple_cameras(cameraIDs, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps):
+    '''
+    Input:
+    - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
+    - image_bound: (xmax, ymax)
+    '''
+    frames_cam = {cameraID: {} for cameraID in cameraIDs}
+    idiot_time = 0.0
+    if not annotations:
+        # Include all frames
+        for t in detections[cameraIDs[0]].keys():
+            for cameraID in cameraIDs:
+                frames_cam[cameraID][round(idiot_time,3)] = {'time': t, 'detections': detections[cameraID][t]}
+            idiot_time += 1/fps
+        return frames_cam
+
+    for t in detections[cameraIDs[0]].keys():
+        vessels_in_image = 0 
+        for cameraID in cameraIDs:
+            vessels_in_image_cam = vessels_in_view_anns(annotations[cameraID][t], image_bounds[cameraID])
+            if len(vessels_in_image_cam) > vessels_in_image:
+                vessels_in_image = len(vessels_in_image_cam)
+        if vessels_in_image >= display_when_min_vessels:
+            frame_time = round(idiot_time,3)
+            for cameraID in cameraIDs:
+                frames_cam[cameraID][frame_time] = {'time': t, 'detections': detections[cameraID][t]}
+            idiot_time += 1/fps
+        if max_time_steps and max_time_steps/fps<float(t):
+            return frames_cam
+    return frames_cam
+
+def visualize_detections(detections, image_bounds, display_frames=None, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, filepath='detections.mp4', fps=3, fastplot=False, max_time_steps=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -461,7 +571,7 @@ def visualize_detections(detections, image_bounds, horizon=None, classification=
         fontsize = 28
         ticks_fontsize = 24
 
-    frames = find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    frames = display_frames if display_frames else find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
     if len(frames) == 0:
         print('No frames satisfy the minimum number of vessel requirement')
         return
@@ -514,10 +624,26 @@ def visualize_detections(detections, image_bounds, horizon=None, classification=
     if max_time_steps and max_time_steps/fps<duration:
         duration = max_time_steps/fps
     animation = VideoClip(make_frame, duration = duration)
-    gif_path = os.path.join(folder_path, 'detections.mp4')
-    animation.write_videofile(gif_path,fps=fps)
+    animation.write_videofile(filepath,fps=fps)
+    return animation
 
-def visualize_detections_json(detections_path, image_bounds, horizon=None, annotations_path=None, show_annotations=False, folder_path='./gifs/', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+def visualize_detections_json(detections_path, image_bounds, display_frames=None, horizon=None, annotations_path=None, show_annotations=False, filepath='.detection.mp4', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = json_to_detection(detections_path)
     annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
-    visualize_detections(detections, image_bounds, horizon=horizon, annotations=annotations, show_annotations=show_annotations, folder_path=folder_path, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+    return visualize_detections(detections, image_bounds, display_frames=display_frames, horizon=horizon, annotations=annotations, show_annotations=show_annotations, filepath=filepath, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+
+def visualize_detections_multiple_cameras(camera_ids, detections_paths, image_bounds, horizons=None, annotations_paths=None, show_annotations=False, folder_path='./', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+    detections = {cameraID: json_to_detection(detections_paths[cameraID]) for cameraID in camera_ids}
+    annotations = {cameraID: json_to_annot(annotations_paths[cameraID]) for cameraID in camera_ids} if (show_annotations and annotations_paths) else None
+    frames = find_frames_detections_multiple_cameras(camera_ids, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    clips = []
+    for cameraID in camera_ids:
+        filename = os.path.join(folder_path, f'detections_C{cameraID}.mp4')
+        image_bound = image_bounds[cameraID]
+        horizon = horizons[cameraID]
+        animation = visualize_detections_json(detections_paths[cameraID], image_bound, display_frames=frames[cameraID], horizon=horizon, annotations_path=annotations_paths[cameraID], show_annotations=show_annotations, filepath=filename, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+        clips.append(animation)
+    if len(clips)>1:
+        final = clips_array([clips])
+        filepath = os.path.join(folder_path, f'detections.mp4')
+        final.write_videofile(filepath,fps=fps)
