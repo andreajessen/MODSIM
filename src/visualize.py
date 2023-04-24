@@ -157,11 +157,11 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
             xs = list(cornerpoints[:,0])+[cornerpoints[:,0][0]]
             ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
             ax.plot(xs, ys, 'b-')
-        
-        camera_position = camera_rig.get_camera_position(t)
-        camera_orientation = camera_rig.get_camera_orientation(t)
-        ax.plot(camera_position[0], camera_position[1], 'ro')
-        ax.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
+        for cameraID in camera_rig.cameras.keys():
+            camera_position = camera_rig.get_camera_position(cameraID, t)
+            camera_orientation = camera_rig.get_camera_orientation(cameraID, t)
+            ax.plot(camera_position[0], camera_position[1], 'ro')
+            ax.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
 
         x_lim = max(camera_position[0]+10, y_x_lim)
         y_lim = max(camera_position[1]+10, y_x_lim)
