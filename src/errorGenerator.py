@@ -89,7 +89,7 @@ class ErrorGenerator:
             confidence_score = self.confidence_threshold
         elif confidence_score > 1:
             confidence_score = 1
-        return confidence_score
+        return round(confidence_score,3)
 
     def is_dropout(self):
         '''
@@ -122,13 +122,13 @@ class ErrorGenerator:
         return self.generate_error_detection(annot)
 
     
-    def generate_detections_t(self, annots_t, t, image_bounds, horizon, writeToJson=False, folder_path=None):
+    def generate_detections_t(self, annots_t, t, image_bounds, horizon, writeToJson=False, filename=None):
         detections = list(filter(lambda item: item is not None, [self.generate_error(annot) for annot in annots_t]))
         false_detections = self.generate_false_positives(image_bounds, horizon, len(detections))
         if false_detections:
             detections.extend(false_detections)
-        if writeToJson and folder_path:
-            update_detections_json(detections, folder_path, t)
+        if writeToJson and filename:
+            update_detections_json(detections, filename, t)
         return detections
     
 
@@ -138,7 +138,7 @@ class ErrorGenerator:
         h = 100 # What should the size be?
         w = 100 # What should the size be?
         bb = BoundingBox(None, [cx, cy], w, h, None)
-        confidence_score = self.confidence_threshold # How to set this?
+        confidence_score = round(np.random.uniform(self.confidence_threshold, self.confidence_threshold+0.2),3) # How to set this?
     
         return Detection(bb, label, None, confidence_score)
 
