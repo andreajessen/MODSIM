@@ -11,7 +11,8 @@
 from datatypes.waveMotion import WaveMotion
 
 class CameraRig:
-    def __init__(self, cameras, vessel=None, include_wave=True):
+
+    def __init__(self, cameras, vessel=None, include_wave=True, wave_size=1):
         '''
         Input:
         - Cameras: Dictionary of all cameras and their ID
@@ -20,8 +21,7 @@ class CameraRig:
         self.vessel = vessel
         self.include_wave = include_wave
         if self.include_wave:
-            self.wave_motion = WaveMotion()  
-        
+            self.wave_motion = WaveMotion(wave_size)  
         self.horizon = {}
         for cameraID in cameras.keys():
             self.horizon[cameraID] = {}

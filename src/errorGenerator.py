@@ -1,14 +1,21 @@
 from datatypes.annotation import Annotation
 from datatypes.boundingBox import BoundingBox
 from datatypes.detection import Detection
+from datatypes.temporalModel import TemporalModel
 import numpy as np 
 import yaml
 from utils import update_detections_json
 
 class ErrorGenerator:
 
-    def __init__(self, detector_stats_path):
-
+    def __init__(self, detector_stats_path, temporal_model=False, transition_matrix=None, states=None, start_state=None):
+        '''
+        Input:
+        - detector_stats_path: path to detector statistics
+        - Transition matrix (np array): Consists of conditional probabilities describing the probability of moving from state sj to state si
+        - States (dict): key: Id/index in transition matrix, value: ConditionState class
+        - Start state (int): ID/index of start state
+        '''
         # Read YAML file
         with open(detector_stats_path, 'r') as stream:
             data_loaded = yaml.safe_load(stream)
@@ -26,12 +33,12 @@ class ErrorGenerator:
         self.sigma_w = data_loaded['errorStats']['sigma_w'] # Standard deviation
         self.mu_w = data_loaded['errorStats']['mu_w'] # Expected value
 
-
         # Check if classification should be active
         self.classification = True if data_loaded.get('labels') else False
 
         # Check if there is a general confusion matrix (without labels)
         if data_loaded.get('confusionMatrix'):
+            # Drop out rate if we don't have a temporal model. But we always assume we have a temporal model?
             self.drop_out = data_loaded['confusionMatrix']['FN']
             self.false_positives = data_loaded['confusionMatrix']['FP']
 
@@ -47,7 +54,14 @@ class ErrorGenerator:
             self.false_positives_class.append(max(0,1-sum(self.false_positives_class)))
 
         self.confidence_threshold = data_loaded['confidenceThreshold']
-    
+
+        if temporal_model:
+            if (transition_matrix is None and states is None and start_state is None):
+                raise ValueError('You need to provide transition_matrix, states and start_state')
+            self.temporal_model = TemporalModel(transition_matrix, states, start_state)
+        else:
+            self.temporal_model = None
+
     
     def calculate_drop_out_labels(self):
         self.possible_labels.append(self.BACKGROUND)
@@ -95,9 +109,12 @@ class ErrorGenerator:
         '''
         Calculates dropout when drop out rate is not dependent on classification
         '''
-        # Should BB distance affect dropout
-        is_drop_out = np.random.choice([True, False], p=[self.drop_out, 1-self.drop_out])
-        return is_drop_out
+        drop_out = self.drop_out
+        if self.temporal_model:
+            drop_out = self.temporal_model.get_dropout()
+        # Should BB size affect dropout
+        dropout = np.random.choice([True, False], p=[drop_out, 1-drop_out])
+        return dropout
 
     def generate_error_class(self, annot):
         label = self.generate_error_label(annot.label)
@@ -121,7 +138,6 @@ class ErrorGenerator:
             return self.generate_error_class(annot)
         return self.generate_error_detection(annot)
 
-    
     def generate_detections_t(self, annots_t, t, image_bounds, horizon, writeToJson=False, filename=None):
         detections = list(filter(lambda item: item is not None, [self.generate_error(annot) for annot in annots_t]))
         false_detections = self.generate_false_positives(image_bounds, horizon, len(detections))
@@ -129,6 +145,7 @@ class ErrorGenerator:
             detections.extend(false_detections)
         if writeToJson and filename:
             update_detections_json(detections, filename, t)
+        self.temporal_model.perform_one_time_step(t, log)
         return detections
     
 
@@ -165,8 +182,3 @@ class ErrorGenerator:
                     detection = self.create_random_detection(image_bounds, horizon, None)
                     false_detections.append(detection)
         return false_detections
-
-
-
-        
-
