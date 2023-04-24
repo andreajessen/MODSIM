@@ -1,31 +1,31 @@
 {
   "vehicle0": {
-    "type": "car",
+    "type": "sailboat",
     "length_m": 8,
     "width_m": 4
   },
   "vehicle1": {
-    "type": "car",
+    "type": "motorboat",
     "length_m": 8,
     "width_m": 4
   },
   "vehicle2": {
-    "type": "car",
+    "type": "motorboat",
     "length_m": 8,
     "width_m": 4
   },
   "vehicle3": {
-    "type": "car",
+    "type": "ferry",
     "length_m": 8,
     "width_m": 4
   },
   "vehicle4": {
-    "type": "car",
+    "type": "motorboat",
     "length_m": 8,
     "width_m": 4
   },
   "vehicle5": {
-    "type": "car",
+    "type": "sailboat",
     "length_m": 8,
     "width_m": 4
   }
