@@ -142,13 +142,13 @@ def vessels_to_json(vessels, path):
     vessel_dict = {vessel.id: {'air_draft_m': vessel.air_draft, 'beam_m': vessel.beam, 'length_m': vessel.length, 'label': vessel.label} for vessel in vessels}
     dict_to_json(filename, vessel_dict)
 
-def projectedPoints_to_json(projected_points, path):
+def projectedPoints_to_json(projected_points, filename):
     # All projected points will probably be on a different format. Did this to get a file.
     projected_points_dict = {time_stamp: {vesselID: {cornerNumber: {'x': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[0], 'y': projected_points[time_stamp][vesselID][cornerNumber].image_coordinate[1], 'depth': projected_points[time_stamp][vesselID][cornerNumber].depth} for cornerNumber in range(len(projected_points[time_stamp][vesselID]))} for vesselID in projected_points[time_stamp]} for time_stamp in projected_points.keys()}
-    filename = os.path.join(path, 'projectedPoints.json')
+    # filename = os.path.join(path, 'projectedPoints.json')
     dict_to_json(filename, projected_points_dict)
 
-def update_projectedPoints_json(projected_points, path, time_stamp):
+def update_projectedPoints_json(projected_points, filename, time_stamp):
     '''
     Input:
     - Projected points for the given time stamp
@@ -156,15 +156,17 @@ def update_projectedPoints_json(projected_points, path, time_stamp):
     - Time stamp
     '''
     projected_points_dict = {time_stamp: {vesselID: {cornerNumber: {'x': projected_points[vesselID][cornerNumber].image_coordinate[0], 'y': projected_points[vesselID][cornerNumber].image_coordinate[1], 'depth': projected_points[vesselID][cornerNumber].depth} for cornerNumber in range(len(projected_points[vesselID]))} for vesselID in projected_points}}
-    filename = os.path.join(path, 'projectedPoints.json')
+    # filename = os.path.join(path, 'projectedPoints.json')
     update_json(filename, projected_points_dict)
 
+#OLD
 def bbs_to_json(bbs, folder_path):
     # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
     bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in bbs[time_stamp]} for time_stamp in bbs.keys()}
     save_path = os.path.join(folder_path, 'boundingBoxes.json')
     dict_to_json(save_path, bb_dict)
 
+#OLD
 def update_bbs_json(bbs, folder_path, time_stamp):
     '''
     Input:
@@ -176,13 +178,12 @@ def update_bbs_json(bbs, folder_path, time_stamp):
     save_path = os.path.join(folder_path, 'boundingBoxes.json')
     update_json(save_path, bb_dict)
 
-def annots_to_json(annots, folder_path):
+def annots_to_json(annots, filename):
     # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
     annots_dict = {time_stamp: {annot.vesselID: {'label': annot.label, 'bbox': {'centre': {'x':  annot.bb.centre[0], 'y': annot.bb.centre[1]}, 'height': annot.bb.height, 'width': annot.bb.width, 'depth':  annot.bb.depth}}for annot in annots[time_stamp]} for time_stamp in annots.keys()}
-    save_path = os.path.join(folder_path, 'annotations.json')
-    dict_to_json(save_path, annots_dict)
+    dict_to_json(filename, annots_dict)
 
-def update_annots_json(annots, folder_path, time_stamp):
+def update_annots_json(annots, filename, time_stamp):
     '''
     Input:
     - Projected points for the given time stamp
@@ -190,15 +191,16 @@ def update_annots_json(annots, folder_path, time_stamp):
     - Time stamp
     '''
     annots_dict = {time_stamp: {annot.vesselID: {'label': annot.label, 'bbox': {'centre': {'x':  annot.bb.centre[0], 'y': annot.bb.centre[1]}, 'height': annot.bb.height, 'width': annot.bb.width, 'depth':  annot.bb.depth}}for annot in annots}}
-    save_path = os.path.join(folder_path, 'annotations.json')
-    update_json(save_path, annots_dict)
+    update_json(filename, annots_dict)
 
+#OLD
 def error_bbs_to_json(error_bbs, folder_path):
     # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
     error_bb_dict = {time_stamp: {bb.vesselID: {'centre': {'x':  bb.centre[0], 'y': bb.centre[1]}, 'height': bb.height, 'width': bb.width, 'depth':  bb.depth} for bb in error_bbs[time_stamp]} for time_stamp in error_bbs.keys()}
     save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
     dict_to_json(save_path, error_bb_dict)
 
+#OLD
 def update_eBBs_json(error_bbs, folder_path, time_stamp):
     '''
     Input:
@@ -210,14 +212,13 @@ def update_eBBs_json(error_bbs, folder_path, time_stamp):
     save_path = os.path.join(folder_path, 'distortedBoundingBoxes.json')
     update_json(save_path, eBB_dict)
 
-def detection_to_json(detections, folder_path):
+def detection_to_json(detections, filename):
     # OBS: because we create bounding boxes based on the depth of the vessels in the CCF, the bbs are created in a order with decreasing depth
     detections = {time_stamp: {detection.vesselID: {'bbox': {'centre': {'x':  detection.bb.centre[0], 'y': detection.bb.centre[1]}, 'height': detection.bb.height, 'width': detection.bb.width, 'depth':  detection.bb.depth}} for detection in detections} for time_stamp in detections.keys()}
-    save_path = os.path.join(folder_path, 'detections.json')
-    dict_to_json(save_path, detections)
+    dict_to_json(filename, detections)
 
 
-def update_detections_json(detections, folder_path, time_stamp):
+def update_detections_json(detections, filename, time_stamp):
     '''
     Input:
     - Projected points for the given time stamp
@@ -225,5 +226,4 @@ def update_detections_json(detections, folder_path, time_stamp):
     - Time stamp
     '''
     detections = {time_stamp: {detection.vesselID: {'label': detection.label, 'confidenceScore': detection.confidenceScore, 'bbox': {'centre': {'x':  detection.bb.centre[0], 'y': detection.bb.centre[1]}, 'height': detection.bb.height, 'width': detection.bb.width, 'depth':  detection.bb.depth}} for detection in detections}}
-    save_path = os.path.join(folder_path, 'detections.json')
-    update_json(save_path, detections)
+    update_json(filename, detections)
