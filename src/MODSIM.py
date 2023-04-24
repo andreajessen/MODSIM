@@ -4,6 +4,7 @@ import os
 
 from utils import *
 from datatypes.virtualCamera import VirtualCamera
+from datatypes.cameraRig import CameraRig
 from dynamicSceneGenerator import DynamicSceneGenerator
 from datatypes.boundingBox import BoundingBox
 from errorGenerator import ErrorGenerator
@@ -95,17 +96,22 @@ def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=60
 #########################################################
 #       Functionality for projecting all points
 #########################################################
-def project_points_t(t, camera_rig, vessels, writeToJson=False, folder_path=None):
+def project_points_t(t, camera_rig: CameraRig, vessels, writeToJson=False, folder_path=None):
     '''
     Projects points for the given time step
     '''
+    projected_points_for_each_camera = {}
     points = {vessel.id: vessel.calculate_3D_cornerpoints(t) for vessel in vessels}
-    projected_points = {vesselID: camera_rig.take_photo(vessel_points, t) for vesselID, vessel_points in points.items()}
+    projected_points_for_each_camera = camera_rig.take_photos(points, t)
     if writeToJson and folder_path:
-        update_projectedPoints_json(projected_points, folder_path, t)
-    return projected_points
+        for cameraID, projected_points in projected_points_for_each_camera.items():
+            filename = os.path.join(folder_path, f'projectedPoints_C{cameraID}.json')
+            update_projectedPoints_json(projected_points, filename, t)
+    return projected_points_for_each_camera
 
 
+
+# OLD
 def project_all_points(camera_rig, vessels, writeToJson=False, folder_path=None):
     '''
     Projects corner points of the vessels given the camera
@@ -126,7 +132,7 @@ def project_all_points(camera_rig, vessels, writeToJson=False, folder_path=None)
 
     return all_projected_points
 
-
+# OLD
 def project_all_points_from_json(camera_rig, folder_path, writeToJson=True):
     '''
     Inputs json path with tracks and vessels, and projects all corner points
@@ -194,12 +200,12 @@ def create_bb(vesselID, pps, image_bounds):
         print(f"VesselID do not have any projected points {vesselID}: {str(e)}")
         return None
     
-def create_annotations_t(projected_points, vessels, image_bounds, time_stamp, annotation_mode=0, writeToJson=False, folder_path=None):
+def create_annotations_t(projected_points_cam, vessels, camera_rig, time_stamp, annotation_mode=0, writeToJson=False, folder_path=None):
     '''
     Create annotations for vessels based on projected points and image bounds.
     
     Inputs:
-    - projected_points: list of projected points
+    - projected_points_cam: dictionary with cameraID as key and list of projected points for that camera as value
     - vessels: list of vessels
     - image_bounds: tuple of (xmin, ymin, xmax, ymax)
     - time_stamp: timestamp for annotations
@@ -210,12 +216,17 @@ def create_annotations_t(projected_points, vessels, image_bounds, time_stamp, an
     Returns:
     - List of Annotation objects
     '''
-    vessel_dict = {vessel.id: vessel for vessel in vessels}
-    bound_boxes = create_bound_boxes_t(projected_points, image_bounds, annotation_mode=annotation_mode)
-    annotations = [Annotation(bb, vessel_dict[bb.vesselID].label, bb.vesselID) for bb in bound_boxes]
-    if writeToJson and folder_path:
-        update_annots_json(annotations, folder_path, time_stamp)
-    return annotations
+    annotations_cam = {}
+    for cameraID, projected_points  in projected_points_cam.items():
+        vessel_dict = {vessel.id: vessel for vessel in vessels}
+        image_bounds = camera_rig.cameras[cameraID].image_bounds
+        bound_boxes = create_bound_boxes_t(projected_points, image_bounds, annotation_mode=annotation_mode)
+        annotations = [Annotation(bb, vessel_dict[bb.vesselID].label, bb.vesselID) for bb in bound_boxes]
+        if writeToJson and folder_path:
+            filename = os.path.join(folder_path, f'annotations_C{cameraID}.json')
+            update_annots_json(annotations, filename, time_stamp)
+        annotations_cam[cameraID] = annotations
+    return annotations_cam
 
 
 def create_bound_boxes_t(projected_points, image_bounds, annotation_mode=0):
@@ -252,14 +263,35 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
         for j in range(i+1, len(bounding_boxes)):
             if bb.check_fully_covered(sorted_bbs[j]):
                 fully_covered = True
-            elif bb.check_overlap(sorted_bbs[j]) and annotation_mode==2:
+            elif bb.check_overlap(sorted_bbs[j]):
                 covering_bbs.append(sorted_bbs[j])
         if len(covering_bbs) > 0:
-            bb.update_bb_if_covered(covering_bbs)
+            bb.update_visibility(covering_bbs)
+            if annotation_mode == 2:
+                bb.update_bb_if_covered(covering_bbs)
         if not fully_covered:
             bbs.append(bb)
     bbs.append(sorted_bbs[-1])
     return bbs
+
+#########################################################
+#       Create detections
+#########################################################
+def create_detections(camera_rig: CameraRig, errorGenerator: ErrorGenerator, t, annots_cam, writeToJson, path):
+    """
+    Input:
+    annots_cam (dict): key: cameraID value: List of Annotations
+    """
+    detections_cam = {}
+    for cameraID, camera in camera_rig.cameras.items():
+        image_bounds = camera.image_bounds
+        horizon = camera_rig.horizon[cameraID][t]
+        filename = os.path.join(path, f'detections_C{cameraID}.json')
+        annots = annots_cam[cameraID]
+
+        detections =  errorGenerator.generate_detections_t(annots, t, image_bounds, horizon, writeToJson=writeToJson, filename=filename)
+        detections_cam[cameraID] = detections
+    return detections_cam
 
 #########################################################
 #       Calculate start state for the temporal model
@@ -279,7 +311,7 @@ def calculate_start_state(detection_conditions, numb_states):
 #########################################################
 #       Perform full cycle for one time step
 #########################################################
-def perform_one_time_step(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
+def perform_one_time_step(dsg: DynamicSceneGenerator, errorGenerator: ErrorGenerator, camera_rig: CameraRig, t, annotation_mode=0, writeToJson=False, path=None):
     """
     Performs a full cycle for one time step.
 
@@ -295,10 +327,10 @@ def perform_one_time_step(dsg, errorGenerator, camera_rig, t, annotation_mode=0,
     Dictionaries containing positions, bounding boxes, and error bounding boxes for each time step.
     """
     generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
-    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
-    annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
-    return pps, annots, detections
+    pps_cam = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
+    annots_cam = create_annotations_t(pps_cam, dsg.get_vessels(), camera_rig, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
+    detections_cam = create_detections(camera_rig, errorGenerator, t, annots_cam, writeToJson, path)
+    return pps_cam, annots_cam, detections_cam
 
 def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotation_mode=0, writeToJson=False, path=None):
     pps, bbs, eBBs = {}, {}, {}
@@ -309,8 +341,8 @@ def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotati
 #############################################################
 #       Perform full cycle for one time step from pose data
 ############################################################
-def perform_one_time_step_poseData(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
-    pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
-    annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
-    return pps, annots, detections
+def perform_one_time_step_poseData(dsg: DynamicSceneGenerator, errorGenerator: ErrorGenerator, camera_rig: CameraRig,  t, annotation_mode=0, writeToJson=False, path=None):
+    pps_cam = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
+    annots_cam = create_annotations_t(pps_cam, dsg.get_vessels(), camera_rig, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
+    detections_cam = create_detections(camera_rig, errorGenerator, t, annots_cam, writeToJson, path)
+    return pps_cam, annots_cam, detections_cam

@@ -17,6 +17,33 @@ confusionMatrix:
   TP: 0.8
   TN: 0.8
 
+labels: # Possible classifications
+  - sailboat
+  - motorboat
+  - ferry
+
+confusionMatrixLabels: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
+  sailboat: 
+    - 0.7
+    - 0.19
+    - 0.01
+  motorboat:
+    - 0.1
+    - 0.65
+    - 0.05
+  ferry:
+    - 0.09
+    - 0.01
+    - 0.3
+
+confidenceThreshold: 0.34 #Confidence threshold used by the detector
+
+falsePositives: # How often the background is classified as each of the labels
+# IMPORTANT! The values for the false positives must be listed in the same order as the possible labels
+  - 0.5
+  - 0.2
+  - 0.11
+
 transitionMatrix: [[0.2, 0.2, 0.2],[0.6, 0.6, 0.6],[0.2, 0.2, 0.2] ]
 
 detectionConditions:
@@ -24,3 +51,4 @@ detectionConditions:
   fog: 0.9
   wind: 0
   darkness: 1 # Day, night, dusk, dawn
+
