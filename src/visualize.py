@@ -553,7 +553,7 @@ def find_frames_detections_multiple_cameras(cameraIDs, detections, annotations, 
             return frames_cam
     return frames_cam
 
-def visualize_detections(detections, image_bounds, display_frames=None, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, filepath='detections.mp4', fps=3, fastplot=False, max_time_steps=None):
+def visualize_detections(detections, image_bounds, display_frames=None, temporal_state_history=None, temporal_state_names=None, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, filepath='detections.mp4', fps=3, fastplot=False, max_time_steps=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -615,7 +615,13 @@ def visualize_detections(detections, image_bounds, display_frames=None, horizon=
         ax.set_xlabel('x', fontsize = fontsize)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
-        ax.set_title(f'Detections at time {t}', fontsize=fontsize)
+        if temporal_state_history and temporal_state_names:
+            current_state = get_dict_item(temporal_state_history, t)
+            state_name = get_dict_item(temporal_state_names, current_state)
+            title = f'Detections at time {t}. In state {current_state}: {state_name}'
+        else:
+            title = f'Detections at time {t}'
+        ax.set_title(title, fontsize=fontsize)
 
         # returning numpy image
         return mplfig_to_npimage(fig)
@@ -627,12 +633,13 @@ def visualize_detections(detections, image_bounds, display_frames=None, horizon=
     animation.write_videofile(filepath,fps=fps)
     return animation
 
-def visualize_detections_json(detections_path, image_bounds, display_frames=None, horizon=None, annotations_path=None, show_annotations=False, filepath='.detection.mp4', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+
+def visualize_detections_json(detections_path, image_bounds, display_frames=None, temporal_state_history=None, temporal_state_names=None, horizon=None, annotations_path=None, show_annotations=False, filepath='.detection.mp4', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = json_to_detection(detections_path)
     annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
-    return visualize_detections(detections, image_bounds, display_frames=display_frames, horizon=horizon, annotations=annotations, show_annotations=show_annotations, filepath=filepath, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+    return visualize_detections(detections, image_bounds, display_frames=display_frames, temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations=annotations, show_annotations=show_annotations, filepath=filepath, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
 
-def visualize_detections_multiple_cameras(camera_ids, detections_paths, image_bounds, horizons=None, annotations_paths=None, show_annotations=False, folder_path='./', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+def visualize_detections_multiple_cameras(camera_ids, detections_paths, image_bounds, temporal_state_history=None, temporal_state_names=None, horizons=None, annotations_paths=None, show_annotations=False, folder_path='./', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = {cameraID: json_to_detection(detections_paths[cameraID]) for cameraID in camera_ids}
     annotations = {cameraID: json_to_annot(annotations_paths[cameraID]) for cameraID in camera_ids} if (show_annotations and annotations_paths) else None
     frames = find_frames_detections_multiple_cameras(camera_ids, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
@@ -641,7 +648,7 @@ def visualize_detections_multiple_cameras(camera_ids, detections_paths, image_bo
         filename = os.path.join(folder_path, f'detections_C{cameraID}.mp4')
         image_bound = image_bounds[cameraID]
         horizon = horizons[cameraID]
-        animation = visualize_detections_json(detections_paths[cameraID], image_bound, display_frames=frames[cameraID], horizon=horizon, annotations_path=annotations_paths[cameraID], show_annotations=show_annotations, filepath=filename, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+        animation = visualize_detections_json(detections_paths[cameraID], image_bound, display_frames=frames[cameraID], temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations_path=annotations_paths[cameraID], show_annotations=show_annotations, filepath=filename, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
         clips.append(animation)
     if len(clips)>1:
         final = clips_array([clips])

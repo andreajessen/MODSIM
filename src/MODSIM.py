@@ -293,6 +293,20 @@ def create_detections(camera_rig: CameraRig, errorGenerator: ErrorGenerator, t, 
         detections_cam[cameraID] = detections
     return detections_cam
 
+#########################################################
+#       Calculate start state for the temporal model
+#########################################################
+
+def calculate_start_state(detection_conditions, numb_states):
+        '''
+        Input:
+        - Detection conditions (dict): with index for how much snow, rain, fog, darkness and wind
+        '''
+        # Precipitation and fog are weight more than wind and darkness
+        condition_score = (2*detection_conditions['precipitation']+2*detection_conditions['fog']+detection_conditions['wind']+detection_conditions['darkness'])/4
+        # The condition scores are equally distributed across the number of states
+        # Set pervious state to the state dependent on the weather conditions
+        return int(min(condition_score,0.99) // (1/numb_states))
 
 #########################################################
 #       Perform full cycle for one time step
