@@ -332,9 +332,10 @@ def visualize_projections_multiple_cameras(camera_ids, projected_points_path, im
         filename = os.path.join(folder_path, f'projectedPoints_C{cameraID}.mp4')
         animation = visualize_projections_json_mov(projected_points_path[cameraID], image_bounds[cameraID], display_frames=frames[cameraID], horizon=horizon, show_box=show_box, fastplot=fastplot, filename=filename, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
         clips.append(animation)
-    final = clips_array([clips])
-    filepath = os.path.join(folder_path, f'projectedPoints.mp4')
-    final.write_videofile(filepath,fps=fps)
+    if len(clips)>1:
+        final = clips_array([clips])
+        filepath = os.path.join(folder_path, f'projectedPoints.mp4')
+        final.write_videofile(filepath,fps=fps)
 ###############################################################################################
 #
 #               Bounding box visualization
@@ -486,9 +487,10 @@ def visualize_annotations_multiple_cameras(camera_ids, annots_path, image_bounds
         pps_path = pps_path[cameraID] if pps_path else None
         animation = visualize_annotations_json(annots_path[cameraID], image_bounds[cameraID], display_frames = frames[cameraID], horizon=horizon, classification=classification, pps_path = pps_path, show_projected_points=show_projected_points, fastplot=fastplot, filename=filename, fps=fps, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels, step=step)
         clips.append(animation)
-    final = clips_array([clips])
-    filepath = os.path.join(folder_path, f'annotations.mp4')
-    final.write_videofile(filepath,fps=fps)
+    if len(clips)>1:
+        final = clips_array([clips])
+        filepath = os.path.join(folder_path, f'annotations.mp4')
+        final.write_videofile(filepath,fps=fps)
 
 
 
