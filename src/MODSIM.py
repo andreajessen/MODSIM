@@ -285,7 +285,7 @@ def perform_one_time_step(dsg, errorGenerator, camera_rig, t, annotation_mode=0,
     generate_positions_t(dsg, t, writeToJson=writeToJson, path=path)
     pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
     annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
+    detections =  errorGenerator.generate_detections_t(annots, t, camera_rig.camera.image_bounds, camera_rig.horizon[t], writeToJson=writeToJson, folder_path=path)
     return pps, annots, detections
 
 def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotation_mode=0, writeToJson=False, path=None):
@@ -300,5 +300,5 @@ def perform_time_steps(t_start, t_end, dsg, errorGenerator, camera_rig, annotati
 def perform_one_time_step_poseData(dsg, errorGenerator, camera_rig, t, annotation_mode=0, writeToJson=False, path=None):
     pps = project_points_t(t, camera_rig, dsg.get_vessels(), writeToJson=writeToJson, folder_path=path)
     annots = create_annotations_t(pps, dsg.get_vessels(), camera_rig.camera.image_bounds, t, annotation_mode=annotation_mode, writeToJson=writeToJson, folder_path=path)
-    detections =  errorGenerator.generate_detections_t(annots, t, writeToJson=writeToJson, folder_path=path)
+    detections =  errorGenerator.generate_detections_t(annots, t, camera_rig.camera.image_bounds, camera_rig.horizon[t], writeToJson=writeToJson, folder_path=path)
     return pps, annots, detections
