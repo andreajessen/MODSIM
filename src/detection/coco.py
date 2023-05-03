@@ -44,6 +44,7 @@ class COCO():
         self.cats = cats
     
     def _isArrayLike(self, obj):
+            if type(obj) == str: return False
             return hasattr(obj, '__iter__') and hasattr(obj, '__len__')
     
     def getAnnIds(self, imgIds=[], catIds=[], areaRng=[], iscrowd=None):
@@ -86,13 +87,15 @@ class COCO():
             return [self.anns[id] for id in ids]
         elif type(ids) == int:
             return [self.anns[ids]]
+        elif type(ids) == str:
+            return [self.anns[ids]]
+
     
-    def visualizeImage(self, image_id, images_path):
-        image_name = str(image_id).zfill(8)+".jpeg" # Image names are 12 characters long
+    def visualizeImage(self, image_id, images_path, image_type='.jpeg'):
+        image_name = str(image_id).zfill(8)+image_type# Image names are 12 characters long
         image = Image.open(images_path+image_name)
         
         fig, ax = plt.subplots()
-
         anns = self.loadAnns(self.getAnnIds(image_id))
         # Draw boxes and add label to each box
         for ann in anns:
