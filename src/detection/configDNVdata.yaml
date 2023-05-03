@@ -1,0 +1,9 @@
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+
+dataset_src_dir: /cluster/home/solveijm/DNV_data/
+train: train.txt  # train images (relative to 'path') 
+val: val.txt  # val images (relative to 'path')
+test:  test.txt # test images (optional)

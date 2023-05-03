@@ -1,0 +1,9 @@
+names:
+- large_head_on_boat
+- crossing_boat
+- overtaking_boat
+nc: 3
+path: /cluster/home/solveijm/DNV_data/
+test: test.txt
+train: train.txt
+val: val.txt
