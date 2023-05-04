@@ -1,1 +1,1 @@
-["open_pleasure_craft", "rhib", "semi_open_pleasure_craft", "fishing_vessel", "enclosed_pleasure_craft", "Tugs", "other_passenger_vessel", "unspecified", "kayak", "catamaran_express_ferry", "buoys", "supply_vessel", "cargo_vessel", "container_vessel", "ferry", "sailboat_motor", "yacht", "sailboat_sail", "rescue_vessel", "cruise_vessel", "sailboat_motor_multiple", "sailboat_sail_multiple", "fish_farm", "barge", "jetski", "ro_ro_vessel"]
+["boat"]
