@@ -27,7 +27,7 @@ def yolo_to_xml_bbox(bbox, w, h):
     return [xmin, ymin, xmax, ymax]
 
 
-def xml_to_yolo(input_dir, output_dir, image_dir, classes):
+def xml_to_yolo(input_dir, output_dir, image_dir, classes, merge_classes=False):
     # create the labels folder (output directory)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -56,8 +56,13 @@ def xml_to_yolo(input_dir, output_dir, image_dir, classes):
             label = obj.find("name").text
             # If class is not a valid class, ignore remove the annotation
             if label not in classes:
-                continue
-            index = classes.index(label)
+                # NB: HACK TO MERGE CLASSES
+                if not merge_classes:
+                    continue
+            if merge_classes:
+                index = 0
+            else: 
+                index = classes.index(label)
             pil_bbox = [float(x.text) for x in obj.find("bndbox")]
             yolo_bbox = xml_to_yolo_bbox(pil_bbox, width, height)
             # convert data to string
