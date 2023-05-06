@@ -53,3 +53,24 @@ yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/tr
 ```
 
 
+## Test yolo on syntetich data
+
+```
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_light_condition1.txt' imgsz=1920 name=test_light_condition1 save=True save_conf=True save_txt=True
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_light_condition2.txt' imgsz=1920 name=test_light_condition2 save=True save_conf=True save_txt=True
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_light_condition3.txt' imgsz=1920 name=test_light_condition3 save=True save_conf=True save_txt=True
+
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_cloud_light1.txt' imgsz=1920 name=test_cloud_light1 save=True save_conf=True save_txt=True
+!yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_cloud_light2.txt' imgsz=1920 name=test_cloud_light2 save=True save_conf=True save_txt=True
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_cloud_light3.txt' imgsz=1920 name=test_cloud_light3 save=True save_conf=True save_txt=True
+
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_rain_light1.txt' imgsz=1920 name=test_rain_light1 save=True save_conf=True save_txt=True
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_rain_light2.txt' imgsz=1920 name=test_rain_light2 save=True save_conf=True save_txt=True
+
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_foggy.txt' imgsz=1920 name=test_foggy save=True save_conf=True save_txt=True
+
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_stormy.txt' imgsz=1920 name=test_stormy save=True save_conf=True save_txt=True
+
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_100e_and_syntetich3/weights/best.pt source='/cluster/home/solveijm/DNV_data/test_stormy_rain.txt' imgsz=1920 name=test_stormy_rain save=True save_conf=True save_txt=True
+```
+
