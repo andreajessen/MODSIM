@@ -105,4 +105,5 @@ class COCO():
             ax.text(box[0], box[1], ann['category_id'], color=self.colors(ann['category_id']))
         
         ax.imshow(image)
+        plt.axis('off')
         plt.show()
