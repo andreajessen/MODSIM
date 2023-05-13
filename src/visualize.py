@@ -277,13 +277,10 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
         ax.clear()
         if horizon:
             horizon_points = get_dict_item(horizon,t)
-            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
-            """
-            # Get the x limits of the plot
-            x_min, x_max = ax.get_xlim()
-
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate, color='#85C1E9', alpha=0.4)
+            
             # Define the x values
-            x = np.linspace(x_min, x_max, 1000)
+            x = np.linspace(0, image_bounds[0], 1000)
 
             # Define the y values of the horizon line
             m = (horizon_points[1].image_coordinate[1] - horizon_points[0].image_coordinate[1]) / (horizon_points[1].image_coordinate[0] - horizon_points[0].image_coordinate[0])
@@ -291,11 +288,13 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
             horizon_line = m * x + b
 
             # Fill the area below the horizon with green
-            ax.fill_between(x, np.min(ax.get_ylim()), horizon_line, color='green')
+            #ax.fill_between(x, 0, horizon_line, color='#3498DB', alpha=0.4)
+
 
             # Fill the area above the horizon with blue
-            ax.fill_between(x, horizon_line, image_bounds[1], color='blue')
-            """
+            ax.fill_between(x, horizon_line, image_bounds[1], color='#85C1E9', alpha=0.4)
+
+                    
         for pps in projected_points.values():
             vessel_x = np.array([point.image_coordinate[0] for point in pps if point.depth>=0])
             vessel_y = np.array([point.image_coordinate[1] for point in pps if point.depth>=0])
