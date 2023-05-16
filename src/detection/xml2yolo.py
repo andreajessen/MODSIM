@@ -126,8 +126,8 @@ def json_to_yolo(input_dir, output_dir, image_height, image_width):
                 # convert data to string
                 bbox_string = " ".join([str(x) for x in yolo_bbox])
                 result.append(f"{class_id} {bbox_string}")
-            else:
-                print(f'Remove bbox outside image bounds from {basename}')
+            #else:
+            #    print(f'Remove bbox outside image bounds from {basename}')
 
         if result:
             # generate a YOLO format text file for each xml file
