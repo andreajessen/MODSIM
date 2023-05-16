@@ -4,11 +4,18 @@ import json
 import itertools
 import os
 import glob
+import math
 
+from PIL import Image
+import matplotlib.patches as patches
 
 
 def read_annotations_yolo(annotations_path, image_width, image_height):
     annotations = []
+    if not os.path.exists(annotations_path): 
+        # No annotations in iamge
+        print('No annotations in ', annotations_path)
+        return annotations
     with open(annotations_path, 'r') as f:
         for line in f:
             parts = line.strip().split()
@@ -17,6 +24,11 @@ def read_annotations_yolo(annotations_path, image_width, image_height):
             y_center = float(parts[2])
             width = float(parts[3])
             height = float(parts[4])
+            if len(parts) > 5:
+                confidence = float(parts[5])
+            else:
+                confidence = None
+
             x1 = int((x_center - width / 2) * image_width)
             y1 = int((y_center - height / 2) * image_height)
             x2 = int((x_center + width / 2) * image_width)
@@ -26,7 +38,8 @@ def read_annotations_yolo(annotations_path, image_width, image_height):
                 'x1': x1,
                 'y1': y1,
                 'x2': x2,
-                'y2': y2
+                'y2': y2,
+                'confidence': confidence
             })
     return annotations
 
@@ -97,9 +110,13 @@ def compute_confusion_matrix(ground_truth_annots, predicted_detections, iou_thre
     return confusion_matrix
 
 def compute_precision(tp, fp):
+    if tp + fp == 0:
+        return 0
     return tp / (tp + fp)
 
 def compute_recall(tp, fn):
+    if tp + fn == 0:
+        return 0
     return tp / (tp + fn)
 
 def display_empiric_confusion_matrix(confusion_matrix, name=''):
@@ -156,7 +173,9 @@ def compute_bbox_errors(ground_truth_bbox, predicted_bbox):
 
 def compute_all_bbox_errors(ground_truth_annots, predicted_detections, iou_treshold):
     bbox_error_vectors = []
+    bb_err_to_img = {}
     for image, annots in ground_truth_annots.items():
+        bb_err_to_img[image] = []
         if image in predicted_detections.keys():
             for gt_annot in annots:
                 for detection in predicted_detections[image]:
@@ -164,9 +183,10 @@ def compute_all_bbox_errors(ground_truth_annots, predicted_detections, iou_tresh
                     if iou > iou_treshold:
                         error_vector = compute_bbox_errors(gt_annot, detection)
                         bbox_error_vectors.append(error_vector)
-    return bbox_error_vectors
+                        bb_err_to_img[image].append(error_vector)
+    return bbox_error_vectors, bb_err_to_img
 
-def calculate_varinace(numbers):
+def calculate_expected_value_and_std(numbers):
     # Step 1: Calculate the expected value
     expected_value = sum(numbers) / len(numbers)
     #expected_value = 0
@@ -174,6 +194,9 @@ def calculate_varinace(numbers):
 
     # Step 2: Subtract the expected value
     differences = [elem - expected_value for elem in numbers]
+
+    max_diff = differences.index(max(differences))
+    print(max_diff)
 
     # Step 3: Square the differences
     squared_differences = [diff**2 for diff in differences]
@@ -184,29 +207,32 @@ def calculate_varinace(numbers):
     # Step 5: Divide by the number of elements to get the variance
     variance = sum_squared_diff / len(numbers)
 
-
+    std = math.sqrt(variance)
     print("Expected value:", expected_value)
-    print("Variance:", variance)
+    print("Standard deviation:", std)
 
-    return expected_value, variance
+    return expected_value, std
 
 def dropout_per_image(ground_truth_annots, predicted_detections, iou_threshold):
     # Compute the number of true positives, false positives, and false negatives
     dropout_images = {}
     fn = 0
     for image, gt_annotations in ground_truth_annots.items():
-        fn = 0
-        for gt_annot in gt_annotations:
-            found_match = False
-            if image in predicted_detections.keys():
-                for pred_annot in predicted_detections[image]:
-                    iou = compute_iou(gt_annot, pred_annot)
-                    if iou > iou_threshold:
-                        found_match = True
-                        break
-            if not found_match:
-                fn += 1
-        dropout_images[int(image)] = fn/len(gt_annotations)
+        if len(gt_annotations) == 0:
+            dropout_images[int(image)] = 0
+        else:
+            fn = 0
+            for gt_annot in gt_annotations:
+                found_match = False
+                if image in predicted_detections.keys():
+                    for pred_annot in predicted_detections[image]:
+                        iou = compute_iou(gt_annot, pred_annot)
+                        if iou > iou_threshold:
+                            found_match = True
+                            break
+                if not found_match:
+                    fn += 1
+            dropout_images[int(image)] = fn/len(gt_annotations)
         
     return dropout_images
 
@@ -267,12 +293,59 @@ def dropout_per_image_synthetic_dataset(ground_truth_annots, predicted_detection
         
     return dropout_images
 
+def filter_detections_by_confidence(detections, confidence_threshold):
+    filtered_detections = {}
+    for image_name, image_detections in detections.items():
+        filtered_image_detections = []
+        for detection in image_detections:
+            if detection['confidence'] >= confidence_threshold:
+                filtered_image_detections.append(detection)
+        if len(filtered_image_detections) > 0:
+            filtered_detections[image_name] = filtered_image_detections
+    return filtered_detections
+
+def create_precision_recall_curve(ground_truth_annots, predicted_detections, iou_threshold):
+    precisions = []
+    recalls = []
+    cf_thresholds = np.arange(0.0, 1.0, 0.05)
+    for confidence_threshold in cf_thresholds:
+        predicted_detections_above_confidence = filter_detections_by_confidence(predicted_detections, confidence_threshold)
+        confusion_matrix = compute_confusion_matrix(ground_truth_annots, predicted_detections_above_confidence, iou_threshold)
+        tp = confusion_matrix[0][0]
+        fp = confusion_matrix[0][1]
+        fn = confusion_matrix[1][0]
+        print(confidence_threshold, tp, fp, fn)
+        precisions.append(compute_precision(tp, fp))
+        recalls.append(compute_recall(tp, fn))
+    print(precisions)
+    print(recalls)
+    plt.plot(recalls, precisions, 'b', label='Precision-Recall Curve')
+    plt.xlim(0, 1.01)
+    plt.ylim(0, 1.01)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.show()
+    plt.plot(cf_thresholds, precisions, 'b', label='Precision-Recall Curve')
+    plt.xlim(0, 1.01)
+    plt.ylim(0, 1.01)
+    plt.xlabel('Confidence')
+    plt.ylabel('Precision')
+    plt.show()
+    plt.plot(cf_thresholds, recalls, 'b', label='Precision-Recall Curve')
+    plt.xlim(0, 1.01)
+    plt.ylim(0, 1.01)
+    plt.xlabel('Confidence')
+    plt.ylabel('Recall')
+    plt.show()
+
 
 
 def get_file_name_synthetic(path):
     return path.strip().split('/')[-1].split('.')[0]
 
-def display_stats(ground_truth_annots, predicted_detections, iou_treshold, name=''):
+def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confidence_threshold, name=''):
+    #create_precision_recall_curve(ground_truth_annots, predicted_detections, iou_treshold)
+    predicted_detections = filter_detections_by_confidence(predicted_detections, confidence_threshold)
     confusion_matrix = compute_confusion_matrix(ground_truth_annots, predicted_detections, iou_treshold)
     tp = confusion_matrix[0][0]
     fp = confusion_matrix[0][1]
@@ -292,7 +365,7 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, name=
     display_probabilistic_confusion_matrix(confusion_matrix, name=name)
     print(f'\n\nBOUNDING BOX ERRORS FOR {name}')
 
-    bbox_error_vectors = compute_all_bbox_errors(ground_truth_annots, predicted_detections, iou_treshold)
+    bbox_error_vectors, bb_err_to_img = compute_all_bbox_errors(ground_truth_annots, predicted_detections, iou_treshold)
 
     cx_e = [x[0] for x in bbox_error_vectors]
     cy_e = [x[1] for x in bbox_error_vectors]
@@ -301,13 +374,13 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, name=
 
     print('IoU threshold: ', iou_treshold)
     print('Error of center x')
-    cx_expected_value, cx_variance = calculate_varinace(cx_e)
+    cx_expected_value, cx_std = calculate_expected_value_and_std(cx_e)
     print('\nError of center y')
-    cy_expected_value, cy_variance = calculate_varinace(cy_e)
+    cy_expected_value, cy_std = calculate_expected_value_and_std(cy_e)
     print('\nError of width')
-    width_expected_value, width_variance = calculate_varinace(width_e)
+    width_expected_value, width_std = calculate_expected_value_and_std(width_e)
     print('\nError of height')
-    height_expected_value, height_variance = calculate_varinace(height_e)
+    height_expected_value, height_std = calculate_expected_value_and_std(height_e)
 
 
     print('\n\n DROPOUT STATS')
@@ -328,7 +401,48 @@ def get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, I
     predicted_detections = {get_file_name_synthetic(image): read_annotations_yolo(image, IMAGE_WIDTH, IMAGE_HEIGHT) for image in predicted_annot_paths}
     return ground_truth_annots, predicted_detections
 
-def display_stats_main(GROUND_TRUTH_PATHS, PREDICTED_PATH, iou_treshold, IMAGE_WIDTH, IMAGE_HEIGHT, name=''):
+def display_stats_main(GROUND_TRUTH_PATHS, PREDICTED_PATH, iou_treshold, CONFIDENCE_THRESHOLD, IMAGE_WIDTH, IMAGE_HEIGHT, name=''):
     ground_truth_annots, predicted_detections = get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, IMAGE_HEIGHT)
-    display_stats(ground_truth_annots, predicted_detections, iou_treshold, name=name)
+    display_stats(ground_truth_annots, predicted_detections, iou_treshold, CONFIDENCE_THRESHOLD, name=name)
+    return ground_truth_annots, predicted_detections
 
+
+def display_predicted(image_id, image_dir, ground_truth_annots, predicted_detections, confidence_threshold):
+    # Iterate over the images
+    # Load the image
+    path = os.path.join(image_dir, image_id) + '.jpg'
+    image = Image.open(path)
+
+    fig, ax = plt.subplots()
+
+
+    # Draw ground truth bounding boxes
+    if image_id in ground_truth_annots.keys():
+        for box in ground_truth_annots[image_id]:
+            x1 = int(box['x1'])
+            y1 = int(box['y1'])
+            x2 = int(box['x2'])
+            y2 = int(box['y2'])
+            height = y2-y1
+            width = x2-x1
+            bb = patches.Rectangle((x1, y1), width, height, linewidth=1, edgecolor='green', facecolor="none")
+            ax.add_patch(bb)
+
+    # Draw predicted bounding boxes
+    if image_id in predicted_detections.keys():
+        for box in predicted_detections[image_id]:
+            if not box['confidence'] >= confidence_threshold: continue
+            x1 = int(box['x1'])
+            y1 = int(box['y1'])
+            x2 = int(box['x2'])
+            y2 = int(box['y2'])
+            height = y2-y1
+            width = x2-x1
+            bb = patches.Rectangle((x1, y1), width,height, linewidth=1, edgecolor='blue', facecolor="none")
+            ax.add_patch(bb)
+            ax.text(x1, y1, box['confidence'], color='blue')
+
+    # Display the image with bounding boxes
+    ax.imshow(image)
+    plt.axis('off')
+    plt.show()
