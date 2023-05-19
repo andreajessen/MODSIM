@@ -153,6 +153,7 @@ def display_probabilistic_confusion_matrix(confusion_matrix, name=''):
         for j in range(2):
             plt.text(j, i, probabilistic_confusion_matrix[i][j], horizontalalignment="center", color="white" if probabilistic_confusion_matrix[i][j] > 0.5 else "black")
     plt.show()
+    return probabilistic_confusion_matrix
 
 def compute_bbox_errors(ground_truth_bbox, predicted_bbox):
     # Compute center point of ground truth and predicted bounding boxes
@@ -211,7 +212,7 @@ def calculate_expected_value_and_std(numbers):
     print("Expected value:", expected_value)
     print("Standard deviation:", std)
 
-    return expected_value, std
+    return round(expected_value,3), round(std,3)
 
 def dropout_per_image(ground_truth_annots, predicted_detections, iou_threshold):
     # Compute the number of true positives, false positives, and false negatives
@@ -239,6 +240,7 @@ def dropout_per_image(ground_truth_annots, predicted_detections, iou_threshold):
 def read_annotations_synthetic(annotations_path, image_width, image_height):
 
     annotations = []
+    if not os.path.exists(annotations_path): return annotations
     with open(annotations_path, 'r') as data_file:
         json_data = data_file.read()
     data = json.loads(json_data)
@@ -290,7 +292,6 @@ def dropout_per_image_synthetic_dataset(ground_truth_annots, predicted_detection
             dropout_images[camera_number][int(image[-3:])] = fn/len(gt_annotations)
         else:
             dropout_images[camera_number][int(image[-3:])] = 0
-        
     return dropout_images
 
 def filter_detections_by_confidence(detections, confidence_threshold):
@@ -362,7 +363,8 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     print("Recall:")
     print(recall)
     display_empiric_confusion_matrix(confusion_matrix, name=name)
-    display_probabilistic_confusion_matrix(confusion_matrix, name=name)
+    probabilistic_confusion_matrix = display_probabilistic_confusion_matrix(confusion_matrix, name=name)
+    print(f'{round(precision,3)} & {round(recall,3)} & {round(probabilistic_confusion_matrix[0][0],3)} & {round(probabilistic_confusion_matrix[1][0],3)} & {fp}')
     print(f'\n\nBOUNDING BOX ERRORS FOR {name}')
 
     bbox_error_vectors, bb_err_to_img = compute_all_bbox_errors(ground_truth_annots, predicted_detections, iou_treshold)
@@ -382,6 +384,8 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     print('\nError of height')
     height_expected_value, height_std = calculate_expected_value_and_std(height_e)
 
+    print(f'{cx_expected_value} & {cx_std} & {cy_expected_value} & {cy_std} & {width_expected_value} & {width_std} & {height_expected_value} & {height_std}')
+
 
     print('\n\n DROPOUT STATS')
     dropout_images_all_cams = dropout_per_image_synthetic_dataset(ground_truth_annots, predicted_detections, iou_treshold)
@@ -394,7 +398,15 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
         plt.show()
 
 def get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, IMAGE_HEIGHT):
-    image_paths = list(itertools.chain.from_iterable([glob.glob(f'{path}/images/*.json') for path in GROUND_TRUTH_PATHS]))
+    #image_paths = list(itertools.chain.from_iterable([glob.glob(f'{path}/images/*.json') for path in GROUND_TRUTH_PATHS]))
+
+    image_paths = []
+    for folder in GROUND_TRUTH_PATHS:
+        with open(os.path.join(folder, 'test.txt'), "r") as file:
+            paths = file.read().splitlines()
+
+        image_paths = [path.strip().strip('.jpg')+'.json' for path in paths]
+    
     ground_truth_annots = {get_file_name_synthetic(path): read_annotations_synthetic(path, IMAGE_WIDTH, IMAGE_HEIGHT) for path in image_paths}
 
     predicted_annot_paths = [os.path.join(PREDICTED_PATH, filename) for filename in os.listdir(PREDICTED_PATH)]
@@ -440,7 +452,7 @@ def display_predicted(image_id, image_dir, ground_truth_annots, predicted_detect
             width = x2-x1
             bb = patches.Rectangle((x1, y1), width,height, linewidth=1, edgecolor='blue', facecolor="none")
             ax.add_patch(bb)
-            ax.text(x1, y1, box['confidence'], color='blue')
+            ax.text(x1, y1, round(box['confidence'],2), color='blue')
 
     # Display the image with bounding boxes
     ax.imshow(image)
