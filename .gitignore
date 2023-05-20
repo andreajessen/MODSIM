@@ -7,6 +7,8 @@ myvenv
 myenv2
 runs/detect/test*
 
+runs/detect/old/*
+
 
 # C extensions
 *.so
