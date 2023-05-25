@@ -69,7 +69,7 @@ def calculate_camera_pitch(camera_position):
     alpha = np.arctan(camera_position[2]/camera_position[0]) # arctan(height/distance)
     return alpha
 
-def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=60): # This should maybe get a better name, and should be moved somewhere?
+def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=5): # This should maybe get a better name, and should be moved somewhere?
     '''
     Function for placing a Simple legacy photo camera in the dynamic scene
     '''
