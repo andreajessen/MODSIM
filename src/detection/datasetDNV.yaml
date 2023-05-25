@@ -1,7 +1,7 @@
 names:
 - boat
 nc: 1
-path: /cluster/home/solveijm/DNV_data/
+path: /cluster/home/solveijm/DNV_synthetic_data_w_pose/
 test: test.txt
 train: train.txt
 val: val.txt

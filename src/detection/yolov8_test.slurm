@@ -25,4 +25,4 @@ echo "Total of $SLURM_NTASKS cores"
 module purge
 module load Anaconda3/2022.05
 pip install ultralytics
-yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_30e_1920imgsz/weights/best.pt source= '/cluster/home/solveijm/hurtigruten/test.txt' imgsz=1920 name=test_30e_1920imgsz save=True
+yolo task=detect mode=predict model=/cluster/work/solveijm/MODSIM/runs/detect/train_30e_1920imgsz/weights/best.pt source= '/cluster/home/solveijm/hurtigruten/test.txt' imgsz=1920 name=test_30e_1920imgsz save=True save_conf=True save_txt=True

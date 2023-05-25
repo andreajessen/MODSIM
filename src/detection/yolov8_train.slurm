@@ -25,4 +25,6 @@ echo "Total of $SLURM_NTASKS cores"
 module purge
 module load Anaconda3/2022.05
 pip install ultralytics
-yolo train model=yolov8n.pt data='/cluster/work/solveijm/MODSIM/src/detection/dataset.yaml' epochs=30 imgsz=2000 name=train_1cls_30e_2000imgsz
+
+yolo train model=/cluster/work/solveijm/MODSIM/runs/detect/train_1cls_100e_1024imgsz_only_hurtigruta_correct/weights/best.pt data='/cluster/work/solveijm/MODSIM/src/detection/datasetDNV.yaml' epochs=50 imgsz=1024 name=train_50e_1024imgz_mixed_synthetic_and_hurtigruta_correct_split_16_05
+

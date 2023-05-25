@@ -351,9 +351,11 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     tp = confusion_matrix[0][0]
     fp = confusion_matrix[0][1]
     fn = confusion_matrix[1][0]
+    false_discovery_rate = fp/(fp+tp)
 
     precision = compute_precision(tp, fp)
     recall = compute_recall(tp, fn)
+    f1_score = 2*(precision*recall/(precision+recall))
     print('Displaying stats')
     # Display the results
     print("Confusion matrix:")
@@ -364,7 +366,7 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     print(recall)
     display_empiric_confusion_matrix(confusion_matrix, name=name)
     probabilistic_confusion_matrix = display_probabilistic_confusion_matrix(confusion_matrix, name=name)
-    print(f'{round(precision,3)} & {round(recall,3)} & {round(probabilistic_confusion_matrix[0][0],3)} & {round(probabilistic_confusion_matrix[1][0],3)} & {fp}')
+    print(f'{round(precision,3)} & {round(recall,3)} & {round(f1_score,3)} & {round(probabilistic_confusion_matrix[1][0],3)} & {round(false_discovery_rate,3)}')
     print(f'\n\nBOUNDING BOX ERRORS FOR {name}')
 
     bbox_error_vectors, bb_err_to_img = compute_all_bbox_errors(ground_truth_annots, predicted_detections, iou_treshold)
