@@ -4,6 +4,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 myvenv
+myenv2
+runs/detect/test*
 
 
 # C extensions
