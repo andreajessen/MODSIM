@@ -91,7 +91,7 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
         ax.set_xlim([0,y_x_lim])
         ax.set_xlabel('x', fontsize = 14)
         ax.set_ylim([0,y_x_lim])
-        ax.set_ylabel('y', fontsize = 14)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.set_title(f'Relationship between x and y at step {t}', fontsize=14)
         for vessel in vessels:
             track = vessel.get_track().get_track_dict()
@@ -129,7 +129,7 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
     - y_x_lim (int): limitation of x and y axis
     '''
     if not y_x_lim:
-        y_x_lim = camera_rig.get_camera_position(0)[0] + 50
+        y_x_lim = camera_rig.get_camera_position(0,0)[0] + 50
     fig, ax = plt.subplots(figsize=figsize)
 
     time_stamps = vessels[0].get_track().get_time_stamps()
@@ -168,7 +168,7 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
         ax.set_xlim([0,x_lim])
         ax.set_xlabel('x', fontsize = 14)
         ax.set_ylim([0,y_lim])
-        ax.set_ylabel('y', fontsize = 14)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.set_title(f'Camera position in scene {t}', fontsize=14)
 
         # returning numpy image
@@ -258,8 +258,8 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
     else:
         figsize = (image_bounds[0]/200, image_bounds[1]/200)
         fig, ax = plt.subplots(figsize=figsize)
-        fontsize = 28
-        ticks_fontsize = 24
+        fontsize = 20
+        ticks_fontsize = 8
 
     frames = display_frames if display_frames else find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
 
@@ -277,7 +277,24 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
         ax.clear()
         if horizon:
             horizon_points = get_dict_item(horizon,t)
-            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate, color='#85C1E9', alpha=0.4)
+            
+            # Define the x values
+            x = np.linspace(0, image_bounds[0], 1000)
+
+            # Define the y values of the horizon line
+            m = (horizon_points[1].image_coordinate[1] - horizon_points[0].image_coordinate[1]) / (horizon_points[1].image_coordinate[0] - horizon_points[0].image_coordinate[0])
+            b = horizon_points[0].image_coordinate[1] - m * horizon_points[0].image_coordinate[0]
+            horizon_line = m * x + b
+
+            # Fill the area below the horizon with green
+            #ax.fill_between(x, 0, horizon_line, color='#3498DB', alpha=0.4)
+
+
+            # Fill the area above the horizon with blue
+            ax.fill_between(x, horizon_line, image_bounds[1], color='#85C1E9', alpha=0.4)
+
+                    
         for pps in projected_points.values():
             vessel_x = np.array([point.image_coordinate[0] for point in pps if point.depth>=0])
             vessel_y = np.array([point.image_coordinate[1] for point in pps if point.depth>=0])
@@ -297,9 +314,9 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
         
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
-        ax.set_ylabel('y', fontsize = fontsize)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.xaxis.tick_top()
-        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.set_xlabel('x', fontsize = 14)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
         ax.set_title(f'Projected points at time {t}', fontsize=fontsize)
@@ -414,8 +431,8 @@ def visualize_annotations(annotations, image_bounds, display_frames = None, hori
     else:
         figsize = (image_bounds[0]/200, image_bounds[1]/200)
         fig, ax = plt.subplots(figsize=figsize)
-        fontsize = 28
-        ticks_fontsize = 24
+        fontsize = 20
+        ticks_fontsize = 8
     
 
 
@@ -451,9 +468,9 @@ def visualize_annotations(annotations, image_bounds, display_frames = None, hori
         
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
-        ax.set_ylabel('y', fontsize = fontsize)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.xaxis.tick_top()
-        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.set_xlabel('x', fontsize = 14)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
         ax.set_title(f'Annotations at time {t}', fontsize=fontsize)
@@ -570,8 +587,8 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
     else:
         figsize = (image_bounds[0]/200, image_bounds[1]/200)
         fig, ax = plt.subplots(figsize=figsize)
-        fontsize = 28
-        ticks_fontsize = 24
+        fontsize = 20
+        ticks_fontsize = 8
 
     frames = display_frames if display_frames else find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
     if len(frames) == 0:
@@ -612,9 +629,9 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
     
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
-        ax.set_ylabel('y', fontsize = fontsize)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.xaxis.tick_top()
-        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.set_xlabel('x', fontsize = 14)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
         if temporal_state_history and temporal_state_names:

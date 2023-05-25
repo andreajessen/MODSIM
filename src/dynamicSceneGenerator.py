@@ -45,7 +45,7 @@ class DynamicSceneGenerator():
         return True
 
 
-    def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=180, w_min=0.005, w_max=0.03, p_0=[200,200], frequency=1):
+    def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=980, w_min=0.005, w_max=0.03, p_0=[1000,1000], frequency=1):
         '''
         Generates random tracks for each vessel in the scene
         Input:
@@ -86,7 +86,7 @@ class DynamicSceneGenerator():
         
         self.largest_radius = np.max(used_radii)
     
-    def set_initial_vessel_tracks(self, min_radius=5, max_radius=180, w_min=0.005, w_max=0.03, p_0=[200,200], frequency=1):
+    def set_initial_vessel_tracks(self, min_radius=5, max_radius=980, w_min=0.005, w_max=0.03, p_0=[1000,1000], frequency=1):
         '''
         - min_radius (int): minimum radius of the circle
         - max_radius (int): max radius of the circle

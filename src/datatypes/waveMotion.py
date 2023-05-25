@@ -8,7 +8,7 @@ import numpy as np
 #
 ##################################################################
 class WaveMotion:
-    def __init__(self, wave_size=1):
+    def __init__(self, wave_induced_camera_disturbance_coef=1):
         '''
         Input:
         - Wave size (int form 0-4): Indicates wave size in the simulation.
@@ -30,9 +30,9 @@ class WaveMotion:
         self.yaw_a = 0.99
         self.yaw_b = 0.99
 
-        self.roll_sigma = 0.00005*wave_size
-        self.pitch_sigma = 0.00003*wave_size
-        self.yaw_sigma = 0.000015*wave_size
+        self.roll_sigma = 0.00005*wave_induced_camera_disturbance_coef
+        self.pitch_sigma = 0.00003*wave_induced_camera_disturbance_coef
+        self.yaw_sigma = 0.000015*wave_induced_camera_disturbance_coef
 
     def generate_wave(self):
         self.roll_1 = self.roll_a*self.roll_1 + np.random.normal(scale=self.roll_sigma)
