@@ -129,7 +129,7 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
     - y_x_lim (int): limitation of x and y axis
     '''
     if not y_x_lim:
-        y_x_lim = camera_rig.get_camera_position(0)[0] + 50
+        y_x_lim = camera_rig.get_camera_position(0,0)[0] + 50
     fig, ax = plt.subplots(figsize=figsize)
 
     time_stamps = vessels[0].get_track().get_time_stamps()
