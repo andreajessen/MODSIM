@@ -1,42 +1,110 @@
-errorStats:
-  sigma_cx: 30
-  mu_cx: 0
 
-  sigma_cy: 30 # Standard deviation
-  mu_cy: 0 # Expected value
+initial_state: 3
 
-  sigma_h: 5 # Standard deviation
-  mu_h: 0 # Expected value
+number_of_states: 4
 
-  sigma_w: 5 # Standard deviation
-  mu_w: 0 # Expected value
-
-confusionMatrix:
-  FN: 0.2
-  FP: 0.2
-  TP: 0.8
-  TN: 0.8
+transitionMatrix: [[0.7, 0.14, 0.02, 0.03],[0.2, 0.7, 0.14, 0.07],[0.07, 0.14, 0.7, 0.2], [0.03, 0.02, 0.14, 0.7]]
 
 labels: # Possible classifications
   - Vessel
 
-confusionMatrixLabels: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
-  Vessel: 
-    - 0.8
-    - 0.1
+background_label: Background
 
-confidenceThreshold: 0.34 # Confidence threshold used by the detector
+confidenceThreshold: 0.2 # Confidence threshold used by the detector
 
-falsePositivesLabels: # How often the background is classified as each of the labels
-# IMPORTANT! The values for the false positives must be listed in the same order as the possible labels
-# These must sum to 1, they mean: If there is a FP what is the probability for it to be of that class?
-  - 1
+states:
+  0:
+    name: terrible_performance
+    bb_error_stats:
+      mu_cx: 3
+      sigma_cx: 42
 
-transitionMatrix: [[0.2, 0.2, 0.2],[0.6, 0.6, 0.6],[0.2, 0.2, 0.2] ]
+      mu_cy: 8 # Expected value
+      sigma_cy: 18 # Standard deviation
 
-detectionConditions:
-  precipitation: 0.0 # Includes  rain, snow, sleet, and hail
-  fog: 0.9
-  wind: 0
-  darkness: 1 # Day, night, dusk, dawn
+      mu_h: -24 # Expected value
+      sigma_h: 72 # Standard deviation
+
+      mu_w: -9 # Expected value
+      sigma_w: 30 # Standard deviation
+    confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
+      Vessel: 
+        - 0.619
+        - 0.381
+      Background:
+        - 1
+        - null
+    FDR: 0.255
+
+  1:
+    name: bad_performance
+    bb_error_stats:
+      mu_cx: 1
+      sigma_cx: 33
+
+      mu_cy: 4 # Expected value
+      sigma_cy: 16 # Standard deviation
+
+      mu_h: -4 # Expected value
+      sigma_h: 58 # Standard deviation
+
+      mu_w: -2 # Expected value
+      sigma_w: 23 # Standard deviation
+    confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
+      Vessel: 
+        - 0.755
+        - 0.245
+      Background:
+        - 1
+        - null
+    FDR: 0.115
+  2:
+    name: good_performance
+    bb_error_stats:
+      mu_cx: 0
+      sigma_cx: 57
+
+      mu_cy: 9 # Expected value
+      sigma_cy: 22 # Standard deviation
+
+      mu_h: -4 # Expected value
+      sigma_h: 84 # Standard deviation
+
+      mu_w: -4 # Expected value
+      sigma_w: 35 # Standard deviation
+    confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
+      Vessel: 
+        - 0.849
+        - 0.151
+      Background:
+        - 1
+        - null
+    FDR: 0.113
+  3:
+    name: excellent_performance
+    bb_error_stats:
+      mu_cx: 4
+      sigma_cx: 48
+
+      mu_cy: 7 # Expected value
+      sigma_cy: 20 # Standard deviation
+
+      mu_h: -8 # Expected value
+      sigma_h: 73 # Standard deviation
+
+      mu_w: -1 # Expected value
+      sigma_w: 35 # Standard deviation
+    confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
+      Vessel: 
+        - 0.867
+        - 0.133
+      Background:
+        - 1
+        - null
+    FDR: 0.089
+
+
+
+
+
 

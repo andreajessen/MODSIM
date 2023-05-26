@@ -28,11 +28,11 @@ class TemporalModel:
     def get_dropout(self):
         return self.states[self.current_state].get_dropout()
     
-    def get_false_positives(self):
-        return self.states[self.current_state].get_false_positives()
+    def get_false_discovery_rate(self):
+        return self.states[self.current_state].get_false_discovery_rate()
     
-    def get_confusion_matrix_labels(self):
-        return self.states[self.current_state].confusion_matrix_labels
+    def get_bb_error_stats(self):
+        return self.states[self.current_state].bb_stats
 
     def perform_one_time_step(self, t, log=False):
         # Add current state to previous states memory

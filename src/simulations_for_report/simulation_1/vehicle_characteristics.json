@@ -1,0 +1,32 @@
+{
+    "vessel0": {
+        "air_draft_m": 20,
+        "beam_m": 4,
+        "length_m": 14,
+        "label": "Vessel"
+    },
+    "vessel1": {
+        "air_draft_m": 4,
+        "beam_m": 3,
+        "length_m": 7,
+        "label": "Vessel"
+    },
+    "vessel2": {
+        "air_draft_m": 4,
+        "beam_m": 3,
+        "length_m": 7,
+        "label": "Vessel"
+    },
+    "vessel3": {
+        "air_draft_m": 20,
+        "beam_m": 4,
+        "length_m": 14,
+        "label": "Vessel"
+    },
+    "vessel4": {
+        "air_draft_m": 4,
+        "beam_m": 3,
+        "length_m": 7,
+        "label": "Vessel"
+    }
+}
