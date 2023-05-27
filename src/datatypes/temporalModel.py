@@ -44,7 +44,6 @@ class TemporalModel:
 
         # Calculate state probability vector for next state
         p_next = np.dot(self.TM, p_current)
-
         self.current_state = np.random.choice(self.numb_states, p=p_next)
         if log:
             print(f'In state {self.current_state}: {self.states[self.current_state].name}')
