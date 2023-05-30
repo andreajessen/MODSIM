@@ -192,10 +192,17 @@ def calculate_expected_value_and_std(numbers):
     expected_value = sum(numbers) / len(numbers)
     #expected_value = 0
 
+    # Plotting the histogram
+    plt.hist(numbers, bins=200, edgecolor='black')  # Adjust the number of bins as needed
+    plt.xlabel('Values')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of Error')
+    plt.grid(True)
 
+    # Display the histogram
+    plt.show()
     # Step 2: Subtract the expected value
     differences = [elem - expected_value for elem in numbers]
-
     max_diff = differences.index(max(differences))
     print(max_diff)
 
@@ -206,7 +213,23 @@ def calculate_expected_value_and_std(numbers):
     sum_squared_diff = sum(squared_differences)
 
     # Step 5: Divide by the number of elements to get the variance
-    variance = sum_squared_diff / len(numbers)
+    variance = sum_squared_diff / (len(numbers)-1)
+
+    # Plot normal distribution
+    x = np.linspace(-variance, variance, 100)  # Adjust the range as needed
+
+    # Calculate the probability density function (PDF) for each point
+    pdf = 1 / np.sqrt(2 * np.pi * variance) * np.exp(-(x - expected_value)**2 / (2 * variance))
+    plt.xlabel('Values')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    # Plotting the normal distribution
+    plt.plot(x, pdf, color='blue')
+
+    plt.title(f'Normal Distribution (mean={expected_value}, variance={variance})')
+
+    # Display the plot
+    plt.show()
 
     std = math.sqrt(variance)
     print("Expected value:", expected_value)
@@ -377,6 +400,8 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     height_e = [x[3] for x in bbox_error_vectors]
 
     print('IoU threshold: ', iou_treshold)
+    covariance_matrix = np.cov(bbox_error_vectors, rowvar=False)
+    print(covariance_matrix)
     print('Error of center x')
     cx_expected_value, cx_std = calculate_expected_value_and_std(cx_e)
     print('\nError of center y')
@@ -385,9 +410,10 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     width_expected_value, width_std = calculate_expected_value_and_std(width_e)
     print('\nError of height')
     height_expected_value, height_std = calculate_expected_value_and_std(height_e)
-
+    expected_value_vector = [cx_expected_value, cy_expected_value, width_expected_value, height_expected_value]
+    print(expected_value_vector)
     print(f'{cx_expected_value} & {cx_std} & {cy_expected_value} & {cy_std} & {width_expected_value} & {width_std} & {height_expected_value} & {height_std}')
-
+    
 
     print('\n\n DROPOUT STATS')
     dropout_images_all_cams = dropout_per_image_synthetic_dataset(ground_truth_annots, predicted_detections, iou_treshold)
