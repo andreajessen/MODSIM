@@ -141,6 +141,7 @@ def display_probabilistic_confusion_matrix(confusion_matrix, name=''):
     total_annotations = tp + fn
     probabilistic_confusion_matrix = [[round(tp/total_annotations,3), fp/fp],[round(fn/total_annotations,3), 0]]
 
+
     plt.imshow(probabilistic_confusion_matrix, interpolation='nearest', cmap=plt.cm.Blues)
     plt.title(f'Probabilistic onfusion Matrix for {name}')
     plt.colorbar()
@@ -153,6 +154,7 @@ def display_probabilistic_confusion_matrix(confusion_matrix, name=''):
         for j in range(2):
             plt.text(j, i, probabilistic_confusion_matrix[i][j], horizontalalignment="center", color="white" if probabilistic_confusion_matrix[i][j] > 0.5 else "black")
     plt.show()
+
     return probabilistic_confusion_matrix
 
 def compute_bbox_errors(ground_truth_bbox, predicted_bbox):
@@ -192,15 +194,7 @@ def calculate_expected_value_and_std(numbers):
     expected_value = sum(numbers) / len(numbers)
     #expected_value = 0
 
-    # Plotting the histogram
-    plt.hist(numbers, bins=200, edgecolor='black')  # Adjust the number of bins as needed
-    plt.xlabel('Values')
-    plt.ylabel('Frequency')
-    plt.title('Histogram of Error')
-    plt.grid(True)
 
-    # Display the histogram
-    plt.show()
     # Step 2: Subtract the expected value
     differences = [elem - expected_value for elem in numbers]
     max_diff = differences.index(max(differences))
@@ -214,6 +208,23 @@ def calculate_expected_value_and_std(numbers):
 
     # Step 5: Divide by the number of elements to get the variance
     variance = sum_squared_diff / (len(numbers)-1)
+
+
+    std = math.sqrt(variance)
+
+    print("Expected value:", expected_value)
+    print("Standard deviation:", std)
+
+    # Plot 
+    # Plotting the histogram
+    plt.hist(numbers, bins=200, edgecolor='black')  # Adjust the number of bins as needed
+    plt.xlabel('Values')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of Error')
+    plt.grid(True)
+
+    # Display the histogram
+    plt.show()
 
     # Plot normal distribution
     x = np.linspace(-variance, variance, 100)  # Adjust the range as needed
@@ -230,10 +241,6 @@ def calculate_expected_value_and_std(numbers):
 
     # Display the plot
     plt.show()
-
-    std = math.sqrt(variance)
-    print("Expected value:", expected_value)
-    print("Standard deviation:", std)
 
     return round(expected_value,3), round(std,3)
 
@@ -387,7 +394,7 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     print(precision)
     print("Recall:")
     print(recall)
-    display_empiric_confusion_matrix(confusion_matrix, name=name)
+    #display_empiric_confusion_matrix(confusion_matrix, name=name)
     probabilistic_confusion_matrix = display_probabilistic_confusion_matrix(confusion_matrix, name=name)
     print(f'{round(precision,3)} & {round(recall,3)} & {round(f1_score,3)} & {round(probabilistic_confusion_matrix[1][0],3)} & {round(false_discovery_rate,3)}')
     print(f'\n\nBOUNDING BOX ERRORS FOR {name}')
@@ -400,8 +407,8 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     height_e = [x[3] for x in bbox_error_vectors]
 
     print('IoU threshold: ', iou_treshold)
-    covariance_matrix = np.cov(bbox_error_vectors, rowvar=False)
-    print(covariance_matrix)
+    covariance_matrix = np.around(np.cov(bbox_error_vectors, rowvar=False),1)
+    print('Covarince matrix of error vectors: \n', covariance_matrix)
     print('Error of center x')
     cx_expected_value, cx_std = calculate_expected_value_and_std(cx_e)
     print('\nError of center y')
@@ -410,10 +417,10 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     width_expected_value, width_std = calculate_expected_value_and_std(width_e)
     print('\nError of height')
     height_expected_value, height_std = calculate_expected_value_and_std(height_e)
-    expected_value_vector = [cx_expected_value, cy_expected_value, width_expected_value, height_expected_value]
-    print(expected_value_vector)
-    print(f'{cx_expected_value} & {cx_std} & {cy_expected_value} & {cy_std} & {width_expected_value} & {width_std} & {height_expected_value} & {height_std}')
-    
+    expected_value_vector = np.around(np.array([cx_expected_value, cy_expected_value, width_expected_value, height_expected_value]),1)
+    print('Expected value vector:\n', expected_value_vector)
+    latex_std_exp = f'{round(cx_expected_value,1)} & {round(cx_std,1)} & {round(cy_expected_value,1)} & {round(cy_std,1)} & {round(width_expected_value,1)} & {round(width_std,1)} & {round(height_expected_value,1)} & {round(height_std,1)}'
+    print(latex_std_exp)
 
     print('\n\n DROPOUT STATS')
     dropout_images_all_cams = dropout_per_image_synthetic_dataset(ground_truth_annots, predicted_detections, iou_treshold)
@@ -424,7 +431,10 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
         plt.title(f'Dropout per image for {name} with camera {i}')
         plt.plot(sorted_image_numbers, sorted_dropout)
         plt.show()
+    
+    plt.close('all')
 
+    return covariance_matrix, expected_value_vector, latex_std_exp
 def get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, IMAGE_HEIGHT):
     #image_paths = list(itertools.chain.from_iterable([glob.glob(f'{path}/images/*.json') for path in GROUND_TRUTH_PATHS]))
 
@@ -443,8 +453,8 @@ def get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, I
 
 def display_stats_main(GROUND_TRUTH_PATHS, PREDICTED_PATH, iou_treshold, CONFIDENCE_THRESHOLD, IMAGE_WIDTH, IMAGE_HEIGHT, name=''):
     ground_truth_annots, predicted_detections = get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, IMAGE_HEIGHT)
-    display_stats(ground_truth_annots, predicted_detections, iou_treshold, CONFIDENCE_THRESHOLD, name=name)
-    return ground_truth_annots, predicted_detections
+    covariance_matrix, expected_value_vector, latex_std_exp = display_stats(ground_truth_annots, predicted_detections, iou_treshold, CONFIDENCE_THRESHOLD, name=name)
+    return ground_truth_annots, predicted_detections, covariance_matrix, expected_value_vector, latex_std_exp
 
 
 def display_predicted(image_id, image_dir, ground_truth_annots, predicted_detections, confidence_threshold):
