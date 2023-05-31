@@ -53,6 +53,8 @@ class ErrorGenerator:
             mu_h=data_loaded['errorStats']['mu_h'],
             sigma_w=data_loaded['errorStats']['sigma_w'],
             mu_w=data_loaded['errorStats']['mu_w'],
+            bb_error_covariance_matrix=data_loaded['errorStats']['bb_error_covariance_matrix'],
+            bb_error_mean_vector=data_loaded['errorStats']['bb_error_mean_vector'],
             labels=data_loaded.get('labels'),
             false_positives_labels=data_loaded.get('falsePositivesLabels'),
             confusion_matrix=data_loaded.get('confusionMatrix'),
@@ -67,7 +69,8 @@ class ErrorGenerator:
         self.false_positives = self.stats.confusion_matrix['FP'] if self.stats.confusion_matrix else None
         self.false_positives_labels = self.stats.false_positives_labels
         self.temporal_model = TemporalModel(transition_matrix, states, start_state) if temporal_model else None
-
+        self.bb_error_covariance_matrix = self.stats.bb_error_covariance_matrix
+        self.bb_error_mean_vector = self.stats.bb_error_mean_vector
 
 
     def generate_error_BB(self, annot: Annotation):
@@ -77,10 +80,17 @@ class ErrorGenerator:
         '''
         BB = annot.bb
         # Introduce error based on normal distribution
-        e_cx = float(np.random.normal(self.stats.mu_cx, self.stats.sigma_cx, 1))
-        e_cy = float(np.random.normal(self.stats.mu_cy, self.stats.sigma_cy, 1))
-        e_w = float(np.random.normal(self.stats.mu_w, self.stats.sigma_w, 1))
-        e_h = float(np.random.normal(self.stats.mu_h, self.stats.sigma_h, 1))
+        #e_cx = float(np.random.normal(self.stats.mu_cx, self.stats.sigma_cx, 1))
+        #e_cy = float(np.random.normal(self.stats.mu_cy, self.stats.sigma_cy, 1))
+        #e_w = float(np.random.normal(self.stats.mu_w, self.stats.sigma_w, 1))
+        #e_h = float(np.random.normal(self.stats.mu_h, self.stats.sigma_h, 1))
+
+        error_vector = np.random.multivariate_normal(self.mean_error_vector, self.error_covariance_matrix)
+
+        e_cx = error_vector[0]
+        e_cy = error_vector[1]
+        e_w = error_vector[2]
+        e_h = error_vector[3]
 
         new_centre = BB.centre + [e_cx, e_cy]
         new_w = BB.width + e_w
