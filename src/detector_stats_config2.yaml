@@ -3,11 +3,7 @@ initial_state: 3
 
 number_of_states: 4
 
-transitionMatrix: [[0.99, 0.00475, 0.0005, 0.0005],
-                   [0.0085, 0.99, 0.00475, 0.001],
-                   [0.001, 0.00475, 0.99, 0.0085], 
-                   [0.0005, 0.0005, 0.00475, 0.99]]
-
+transitionMatrix: [[0.9, 0.07, 0.02, 0.01],[0.04, 0.9, 0.04, 0.02],[0.02, 0.04, 0.9, 0.04], [0.01, 0.02, 0.07, 0.9]]
 
 labels: # Possible classifications
   - Vessel
@@ -20,17 +16,17 @@ states:
   0:
     name: terrible_performance
     bb_error_stats:
-      mu_cx: 3
-      sigma_cx: 42
+      mu_cx: -0.052
+      sigma_cx: 3.615
 
-      mu_cy: 8 # Expected value
-      sigma_cy: 18 # Standard deviation
+      mu_cy: -0.890 # Expected value
+      sigma_cy: 3.489 # Standard deviation
 
-      mu_h: -24 # Expected value
-      sigma_h: 72 # Standard deviation
+      mu_h: 0.140 # Expected value
+      sigma_h: 7.178 # Standard deviation
 
-      mu_w: -9 # Expected value
-      sigma_w: 30 # Standard deviation
+      mu_w: -0.028 # Expected value
+      sigma_w: 7.178 # Standard deviation
     confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
       Vessel: 
         - 0.619
@@ -43,17 +39,17 @@ states:
   1:
     name: bad_performance
     bb_error_stats:
-      mu_cx: 1
-      sigma_cx: 33
+      mu_cx: -0.052
+      sigma_cx: 3.615
 
-      mu_cy: 4 # Expected value
-      sigma_cy: 16 # Standard deviation
+      mu_cy: -0.890 # Expected value
+      sigma_cy: 3.489 # Standard deviation
 
-      mu_h: -4 # Expected value
-      sigma_h: 58 # Standard deviation
+      mu_h: 0.140 # Expected value
+      sigma_h: 7.178 # Standard deviation
 
-      mu_w: -2 # Expected value
-      sigma_w: 23 # Standard deviation
+      mu_w: -0.028 # Expected value
+      sigma_w: 7.178 # Standard deviation
     confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
       Vessel: 
         - 0.755
@@ -65,17 +61,17 @@ states:
   2:
     name: good_performance
     bb_error_stats:
-      mu_cx: 0
-      sigma_cx: 57
+      mu_cx: -0.052
+      sigma_cx: 3.615
 
-      mu_cy: 9 # Expected value
-      sigma_cy: 22 # Standard deviation
+      mu_cy: -0.890 # Expected value
+      sigma_cy: 3.489 # Standard deviation
 
-      mu_h: -4 # Expected value
-      sigma_h: 84 # Standard deviation
+      mu_h: 0.140 # Expected value
+      sigma_h: 7.178 # Standard deviation
 
-      mu_w: -4 # Expected value
-      sigma_w: 35 # Standard deviation
+      mu_w: -0.028 # Expected value
+      sigma_w: 7.178 # Standard deviation
     confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
       Vessel: 
         - 0.849
@@ -87,17 +83,17 @@ states:
   3:
     name: excellent_performance
     bb_error_stats:
-      mu_cx: 4
-      sigma_cx: 48
+      mu_cx: -0.052
+      sigma_cx: 3.615
 
-      mu_cy: 7 # Expected value
-      sigma_cy: 20 # Standard deviation
+      mu_cy: -0.890 # Expected value
+      sigma_cy: 3.489 # Standard deviation
 
-      mu_h: -8 # Expected value
-      sigma_h: 73 # Standard deviation
+      mu_h: 0.140 # Expected value
+      sigma_h: 7.178 # Standard deviation
 
-      mu_w: -1 # Expected value
-      sigma_w: 35 # Standard deviation
+      mu_w: -0.028 # Expected value
+      sigma_w: 7.178 # Standard deviation
     confusion_matrix: # IMPORTANT! The values for the confusion matrix must be listed in the same order as the possible labels
       Vessel: 
         - 0.867

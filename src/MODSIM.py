@@ -13,10 +13,10 @@ from datatypes.annotation import Annotation
 #########################################################
 #       Functionality for initializing DSG
 ##########################################################
-def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None, max_radius=500, frequency=1):
     dsg = DynamicSceneGenerator()
     dsg.set_random_vessels(number_of_vessels)
-    dsg.set_initial_vessel_tracks()
+    dsg.set_initial_vessel_tracks(max_radius=max_radius, frequency=frequency)
     if writeToJson and path:
         vessels = dsg.get_vessels()
         vessels_to_json(vessels, path)
@@ -69,7 +69,7 @@ def calculate_camera_pitch(camera_position):
     alpha = np.arctan(camera_position[2]/camera_position[0]) # arctan(height/distance)
     return alpha
 
-def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=60): # This should maybe get a better name, and should be moved somewhere?
+def create_and_place_simple_legacy_camera(largest_radius, path_centre, height=5): # This should maybe get a better name, and should be moved somewhere?
     '''
     Function for placing a Simple legacy photo camera in the dynamic scene
     '''
@@ -263,6 +263,8 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
         for j in range(i+1, len(bounding_boxes)):
             if bb.check_fully_covered(sorted_bbs[j]):
                 fully_covered = True
+                if annotation_mode == 0:
+                    bb.visibility = 0
             elif bb.check_overlap(sorted_bbs[j]):
                 covering_bbs.append(sorted_bbs[j])
         if len(covering_bbs) > 0:
@@ -270,6 +272,8 @@ def handle_covered_bbs(bounding_boxes, annotation_mode):
             if annotation_mode == 2:
                 bb.update_bb_if_covered(covering_bbs)
         if not fully_covered:
+            bbs.append(bb)
+        elif annotation_mode == 0:
             bbs.append(bb)
     bbs.append(sorted_bbs[-1])
     return bbs
