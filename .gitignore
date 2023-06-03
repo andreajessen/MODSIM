@@ -6,7 +6,7 @@ __pycache__/
 myvenv
 myenv2
 runs/detect/test*
-
+src/simulations_for_report/*
 
 # C extensions
 *.so

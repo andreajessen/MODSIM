@@ -28,11 +28,11 @@ class TemporalModel:
     def get_dropout(self):
         return self.states[self.current_state].get_dropout()
     
-    def get_false_positives(self):
-        return self.states[self.current_state].get_false_positives()
+    def get_false_discovery_rate(self):
+        return self.states[self.current_state].get_false_discovery_rate()
     
-    def get_confusion_matrix_labels(self):
-        return self.states[self.current_state].confusion_matrix_labels
+    def get_bb_error_stats(self):
+        return self.states[self.current_state].bb_stats
 
     def perform_one_time_step(self, t, log=False):
         # Add current state to previous states memory
@@ -44,7 +44,6 @@ class TemporalModel:
 
         # Calculate state probability vector for next state
         p_next = np.dot(self.TM, p_current)
-
         self.current_state = np.random.choice(self.numb_states, p=p_next)
         if log:
             print(f'In state {self.current_state}: {self.states[self.current_state].name}')

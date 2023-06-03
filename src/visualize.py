@@ -6,13 +6,17 @@ import os
 from moviepy.editor import VideoClip, clips_array
 from moviepy.video.io.bindings import mplfig_to_npimage
 from utils import json_to_projectedPoints, json_to_annot, json_to_detection
+import seaborn as sns
+from matplotlib.collections import PolyCollection
 
 ###############################################################################################
 #
 #               Help functions for visualization
 #
 ###############################################################################################
-plot_colors = ['blue','orange','green','red','purple','brown','pink','gray','olive','cyan']
+#plot_colors = ['blue','orange','green','red','purple','brown','pink','gray','olive','cyan']
+plot_colors = sns.color_palette()[:7]+sns.color_palette()[8:]
+
 vesselID2Color = {}
 vessel_count = 0
 drop_frames3 = []
@@ -91,7 +95,7 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
         ax.set_xlim([0,y_x_lim])
         ax.set_xlabel('x', fontsize = 14)
         ax.set_ylim([0,y_x_lim])
-        ax.set_ylabel('y', fontsize = 14)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.set_title(f'Relationship between x and y at step {t}', fontsize=14)
         for vessel in vessels:
             track = vessel.get_track().get_track_dict()
@@ -119,7 +123,7 @@ def visualize_dynamic_scene_mov(vessels, folder_path='./gifs/', figsize=(6, 6), 
 #               Camera position visualization
 #
 ###############################################################################################
-def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3, max_time_steps=None):
+def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', y_x_lim=None, figsize=(6,6), fps=3, max_time_steps=None, ownship_id=None, display_camera_pose=False, frequency=1):
     '''
     Creates the plot image for the given time step
     Input:
@@ -128,8 +132,10 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
     - figsize (int): Size of figure
     - y_x_lim (int): limitation of x and y axis
     '''
+    sns.set()
+
     if not y_x_lim:
-        y_x_lim = camera_rig.get_camera_position(0)[0] + 50
+        y_x_lim = camera_rig.get_camera_position(0,0)[0] + 50
     fig, ax = plt.subplots(figsize=figsize)
 
     time_stamps = vessels[0].get_track().get_time_stamps()
@@ -156,20 +162,24 @@ def visualize_camera_pose_in_dsg_mov(camera_rig, vessels, folder_path='./gifs', 
             cornerpoints = vessel.calculate_2D_cornerpoints(t)
             xs = list(cornerpoints[:,0])+[cornerpoints[:,0][0]]
             ys = list(cornerpoints[:,1])+[cornerpoints[:,1][0]]
-            ax.plot(xs, ys, 'b-')
+            if ownship_id and ownship_id==vessel.id:
+                ax.plot(xs, ys, 'b-', linewidth=2)
+            else:
+                ax.plot(xs, ys, 'k-', linewidth=1)
         for cameraID in camera_rig.cameras.keys():
             camera_position = camera_rig.get_camera_position(cameraID, t)
-            camera_orientation = camera_rig.get_camera_orientation(cameraID, t)
-            ax.plot(camera_position[0], camera_position[1], 'ro')
-            ax.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
+            if display_camera_pose:
+                camera_orientation = camera_rig.get_camera_orientation(cameraID, t)
+                ax.plot(camera_position[0], camera_position[1], 'ro')
+                ax.plot([camera_position[0],  camera_position[0]+camera_orientation[0]*50], [camera_position[1],  camera_position[1]+camera_orientation[1]*50], 'r-')
 
         x_lim = max(camera_position[0]+10, y_x_lim)
         y_lim = max(camera_position[1]+10, y_x_lim)
         ax.set_xlim([0,x_lim])
         ax.set_xlabel('x', fontsize = 14)
         ax.set_ylim([0,y_lim])
-        ax.set_ylabel('y', fontsize = 14)
-        ax.set_title(f'Camera position in scene {t}', fontsize=14)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0, labelpad=10)
+        ax.set_title(f'Dynamic scene position at time {round(float(t)*frequency,1)}', fontsize=14)
 
         # returning numpy image
         return mplfig_to_npimage(fig)
@@ -241,7 +251,10 @@ def find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels
             return frames
     return frames
 
-def visualize_projections_mov(all_projected_points, image_bounds, display_frames=None, horizon=None, show_box=True, fastplot=False, filename='./pps.mp4', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_mov(all_projected_points, image_bounds, display_frames=None, 
+                              horizon=None, show_box=True, fastplot=False, 
+                              filename='./pps.mp4', fps=3, max_time_steps=None, 
+                              display_when_min_vessels=0, frequency=1):
     '''
     Input:
     all_projected_points (List): List of lists of points for each vessel
@@ -250,16 +263,17 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
 
     '''
     global drop_frames3
+    sns.set()
 
     if fastplot:
         fig, ax = plt.subplots()
         fontsize = 10
-        ticks_fontsize = 8
+        ticks_fontsize = 10
     else:
         figsize = (image_bounds[0]/200, image_bounds[1]/200)
         fig, ax = plt.subplots(figsize=figsize)
-        fontsize = 28
-        ticks_fontsize = 24
+        fontsize = 20
+        ticks_fontsize = 10
 
     frames = display_frames if display_frames else find_frames_pps(all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
 
@@ -277,11 +291,29 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
         ax.clear()
         if horizon:
             horizon_points = get_dict_item(horizon,t)
-            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate, color='#85C1E9', alpha=0.4)
+            
+            # Define the x values
+            x = np.linspace(0, image_bounds[0], 1000)
+
+            # Define the y values of the horizon line
+            m = (horizon_points[1].image_coordinate[1] - horizon_points[0].image_coordinate[1]) / (horizon_points[1].image_coordinate[0] - horizon_points[0].image_coordinate[0])
+            b = horizon_points[0].image_coordinate[1] - m * horizon_points[0].image_coordinate[0]
+            horizon_line = m * x + b
+
+            # Fill the area below the horizon with green
+            ax.fill_between(x, 0, horizon_line, color='#85C1E9', alpha=0.2)
+
+
+            # Fill the area above the horizon with blue
+            ax.fill_between(x, horizon_line, image_bounds[1], color='#3498DB', alpha=0.3)
+
+                    
         for pps in projected_points.values():
             vessel_x = np.array([point.image_coordinate[0] for point in pps if point.depth>=0])
             vessel_y = np.array([point.image_coordinate[1] for point in pps if point.depth>=0])
             ax.plot(vessel_x, vessel_y, 'o')
+            #ax.fill_between(vessel_x, vessel_y, color='grey', alpha=0.5)
             # Order of cornerpoints (length, beam, height): 
             # Front back lower, back back lower, 
             # back front lower, front front lower, 
@@ -290,19 +322,46 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
             if show_box and vessel_x.size == 8:
                 xs = list(vessel_x[0:4])+[vessel_x[0]]+list(vessel_x[4:])+[vessel_x[4]]
                 ys = list(vessel_y[0:4])+[vessel_y[0]]+list(vessel_y[4:])+[vessel_y[4]]
-                ax.plot(xs, ys, 'b-')
-                ax.plot([vessel_x[1], vessel_x[5]], [vessel_y[1], vessel_y[5]], 'b-')
-                ax.plot([vessel_x[2], vessel_x[6]], [vessel_y[2], vessel_y[6]], 'b-')
-                ax.plot([vessel_x[3], vessel_x[7]], [vessel_y[3], vessel_y[7]], 'b-')
+                ax.plot(xs, ys, 'k-')
+                ax.plot([vessel_x[1], vessel_x[5]], [vessel_y[1], vessel_y[5]], 'k-')
+                ax.plot([vessel_x[2], vessel_x[6]], [vessel_y[2], vessel_y[6]], 'k-')
+                ax.plot([vessel_x[3], vessel_x[7]], [vessel_y[3], vessel_y[7]], 'k-')
+
+                                # Define the colors for each face
+                grey_color = (0.7019607843137254, 0.7019607843137254, 0.7019607843137254)
+
+                # Define the indices of the cube vertices that form each face
+                face_indices = [[0, 1, 2, 3, 0],  # Front face
+                                [1, 2, 6, 5, 1],  # Right face
+                                [2, 3, 7, 6, 2],  # Back face
+                                [3, 0, 4, 7, 3],  # Left face
+                                [0, 1, 5, 4, 0],  # Bottom face
+                                [4, 5, 6, 7, 4]]  # Top face
+
+                # Fill each face of the cube with a different color
+                for indices in face_indices:
+                    face_x = [vessel_x[i] for i in indices]
+                    face_y = [vessel_y[i] for i in indices]
+                    ax.fill(face_x, face_y, color=grey_color, alpha=0.5)
+                #ax.fill_between([xs[6], xs[5], xs[4], xs[7], xs[6]], [ys[6], ys[5], ys[4], ys[7], ys[6]], color='grey', alpha=0.5)
+                #ax.fill_between([xs[6], xs[5]], [ys[6], ys[5]], color='red', alpha=0.5)
+                #ax.fill_between([xs[0],xs[2]], [ys[0], ys[2]], color='green', alpha=0.5)
+                #ax.fill_between([xs[1],xs[3]], [ys[1], ys[3]], color='orange', alpha=0.5)
+                #ax.fill_between(xs[2:], ys[2:], color='yellow', alpha=0.5)
+                #ax.fill_between(xs, ys, color='grey', alpha=0.5)
+                #l = [[[xs[0], ys[0]], [xs[1], ys[1]]], [[xs[0], ys[0]], [xs[3], ys[3]]], [[xs[0], ys[0]], [xs[4], ys[4]]], [[xs[1], ys[1]], [xs[2], ys[2]]], [[xs[1], ys[1]], [xs[5], ys[5]]],[[xs[2], ys[2]], [xs[3], ys[3]]],[[xs[2], ys[2]], [xs[6], ys[6]]], [[xs[3], ys[3]], [xs[7], ys[7]]],[[xs[4], ys[4]], [xs[5], ys[5]]]]
+                #pc2 = PolyCollection(l,  facecolors='red', edgecolor="k", alpha=0.9)
+                #ax.add_collection(pc2)
+                #ax.fill(pc2, facecolor='red')
         
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
-        ax.set_ylabel('y', fontsize = fontsize)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0, labelpad=10)
         ax.xaxis.tick_top()
-        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.set_xlabel('x', fontsize = 14)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
-        ax.set_title(f'Projected points at time {t}', fontsize=fontsize)
+        ax.set_title(f'Projected points at time {round(float(t)*frequency,1)}', fontsize=fontsize)
 
         # returning numpy image
         return mplfig_to_npimage(fig)
@@ -316,21 +375,34 @@ def visualize_projections_mov(all_projected_points, image_bounds, display_frames
     return animation
 
 
-def visualize_projections_json_mov(projected_points_path, image_bounds, display_frames = None, horizon=None, show_box=True, fastplot=False, filename='./pps.mp4', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_json_mov(projected_points_path, image_bounds, display_frames = None, 
+                                   horizon=None, show_box=True, fastplot=False, filename='./pps.mp4', 
+                                   fps=3, max_time_steps=None, display_when_min_vessels=0, frequency=1):
     print('Loading projections from json')
     all_projected_points = json_to_projectedPoints(projected_points_path)
     print('Visualizing projections')
-    return visualize_projections_mov(all_projected_points, image_bounds, horizon=horizon, display_frames=display_frames, show_box=show_box, fastplot=fastplot, filename=filename, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
+    return visualize_projections_mov(all_projected_points, image_bounds, horizon=horizon, 
+                                     display_frames=display_frames, show_box=show_box, 
+                                     fastplot=fastplot, filename=filename, fps=fps,
+                                     max_time_steps=max_time_steps, 
+                                     display_when_min_vessels=display_when_min_vessels, frequency=frequency)
 
 
-def visualize_projections_multiple_cameras(camera_ids, projected_points_path, image_bounds, horizons=None, show_box=True, fastplot=False, folder_path='./gifs/', fps=3, skip=0, max_time_steps=None, display_when_min_vessels=0):
+def visualize_projections_multiple_cameras(camera_ids, projected_points_path, image_bounds, 
+                                           horizons=None, show_box=True, fastplot=False, 
+                                           folder_path='./gifs/', fps=3, skip=0, 
+                                           max_time_steps=None, display_when_min_vessels=0, frequency=1):
     all_projected_points = {cameraID: json_to_projectedPoints(projected_points_path[cameraID]) for cameraID in camera_ids}
     frames = find_frames_pps_multiple_cameras(camera_ids, all_projected_points, image_bounds, display_when_min_vessels, fps, max_time_steps)
     clips = []
     for cameraID in camera_ids:
         horizon = horizons[cameraID] if horizons else None
         filename = os.path.join(folder_path, f'projectedPoints_C{cameraID}.mp4')
-        animation = visualize_projections_json_mov(projected_points_path[cameraID], image_bounds[cameraID], display_frames=frames[cameraID], horizon=horizon, show_box=show_box, fastplot=fastplot, filename=filename, fps=fps, skip=skip, max_time_steps=max_time_steps, display_when_min_vessels=display_when_min_vessels)
+        animation = visualize_projections_json_mov(projected_points_path[cameraID], image_bounds[cameraID], 
+                                                   display_frames=frames[cameraID], horizon=horizon, 
+                                                   show_box=show_box, fastplot=fastplot, filename=filename, 
+                                                   fps=fps, max_time_steps=max_time_steps, 
+                                                   display_when_min_vessels=display_when_min_vessels, frequency=frequency)
         clips.append(animation)
     if len(clips)>1:
         final = clips_array([clips])
@@ -410,12 +482,12 @@ def visualize_annotations(annotations, image_bounds, display_frames = None, hori
     if fastplot:
         fig, ax = plt.subplots()
         fontsize = 10
-        ticks_fontsize = 8
+        ticks_fontsize = 10
     else:
         figsize = (image_bounds[0]/200, image_bounds[1]/200)
         fig, ax = plt.subplots(figsize=figsize)
-        fontsize = 28
-        ticks_fontsize = 24
+        fontsize = 20
+        ticks_fontsize = 10
     
 
 
@@ -451,9 +523,9 @@ def visualize_annotations(annotations, image_bounds, display_frames = None, hori
         
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
-        ax.set_ylabel('y', fontsize = fontsize)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0)
         ax.xaxis.tick_top()
-        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.set_xlabel('x', fontsize = 14)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
         ax.set_title(f'Annotations at time {t}', fontsize=fontsize)
@@ -524,7 +596,7 @@ def find_frames_detections(detections, annotations, image_bounds, display_when_m
             return frames
     return frames
 
-def find_frames_detections_multiple_cameras(cameraIDs, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps):
+def find_frames_detections_multiple_cameras(cameraIDs, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps, skip_ten=False):
     '''
     Input:
     - all_projected_points (dict): {time_step: {vesselID: [ProjectedPoint1,..., ProjectedPoint8]}}
@@ -541,6 +613,7 @@ def find_frames_detections_multiple_cameras(cameraIDs, detections, annotations, 
         return frames_cam
 
     for t in detections[cameraIDs[0]].keys():
+        if skip_ten and float(t)%1!=0: continue
         vessels_in_image = 0 
         for cameraID in cameraIDs:
             vessels_in_image_cam = vessels_in_view_anns(annotations[cameraID][t], image_bounds[cameraID])
@@ -555,7 +628,7 @@ def find_frames_detections_multiple_cameras(cameraIDs, detections, annotations, 
             return frames_cam
     return frames_cam
 
-def visualize_detections(detections, image_bounds, display_frames=None, temporal_state_history=None, temporal_state_names=None, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, filepath='detections.mp4', fps=3, fastplot=False, max_time_steps=None):
+def visualize_detections(detections, image_bounds, display_frames=None, frequency=1, temporal_state_history=None, temporal_state_names=None, horizon=None, classification=True, annotations=None, show_annotations=False, display_when_min_vessels=0, filepath='detections.mp4', fps=3, fastplot=False, max_time_steps=None):
     '''
     Input:
     projected_points (List): List of lists of points for each vessel
@@ -563,15 +636,16 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
     image_bounds (Tuple): x and y pixel boundaries
 
     '''
+    sns.set()
     if fastplot:
         fig, ax = plt.subplots()
         fontsize = 10
-        ticks_fontsize = 8
+        ticks_fontsize = 10
     else:
         figsize = (image_bounds[0]/200, image_bounds[1]/200)
         fig, ax = plt.subplots(figsize=figsize)
-        fontsize = 28
-        ticks_fontsize = 24
+        fontsize = 20
+        ticks_fontsize = 10
 
     frames = display_frames if display_frames else find_frames_detections(detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
     if len(frames) == 0:
@@ -590,7 +664,22 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
         ax.clear()
         if horizon:
             horizon_points = get_dict_item(horizon,t)
-            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate)
+            ax.axline(horizon_points[0].image_coordinate, horizon_points[1].image_coordinate, color='#85C1E9', alpha=0.4)
+            
+            # Define the x values
+            x = np.linspace(0, image_bounds[0], 1000)
+
+            # Define the y values of the horizon line
+            m = (horizon_points[1].image_coordinate[1] - horizon_points[0].image_coordinate[1]) / (horizon_points[1].image_coordinate[0] - horizon_points[0].image_coordinate[0])
+            b = horizon_points[0].image_coordinate[1] - m * horizon_points[0].image_coordinate[0]
+            horizon_line = m * x + b
+
+            # Fill the area below the horizon with green
+            ax.fill_between(x, 0, horizon_line, color='#85C1E9', alpha=0.2)
+
+
+            # Fill the area above the horizon with blue
+            ax.fill_between(x, horizon_line, image_bounds[1], color='#3498DB', alpha=0.3)
         if show_annotations:
             if not annotations:
                 print("Provide original BBs when show original BBs is true")
@@ -598,10 +687,11 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
                 annotations_t = get_dict_item(annotations,t)
                 for vesselID, annot in annotations_t.items():
                     xs, ys = annot['bbox'].get_points_for_visualizing()
-                    ax.plot(xs, ys, '-', color='lightgrey')
-                    ax.fill(xs, ys, color='lightgrey')
+                    grey_color = (0.7019607843137254, 0.7019607843137254, 0.7019607843137254)
+                    ax.plot(xs, ys, '-', color=grey_color)
+                    ax.fill(xs, ys, color=grey_color)
                     if classification:
-                        ax.text(xs[1], ys[0]-5, annot['label'], color='lightgrey')
+                        ax.text(xs[1], ys[0]-5, annot['label'], color='grey')
         for vesselID, detection in detections_t.items():
             xs, ys = detection['bbox'].get_points_for_visualizing()
             ax.plot(xs, ys, '-', color=get_color(vesselID))
@@ -612,18 +702,20 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
     
         ax.set_xlim([0,image_bounds[0]])
         ax.set_ylim([image_bounds[1],0])
-        ax.set_ylabel('y', fontsize = fontsize)
+        ax.set_ylabel('y', fontsize = 14, rotation = 0, labelpad=10)
         ax.xaxis.tick_top()
-        ax.set_xlabel('x', fontsize = fontsize)    
+        ax.set_xlabel('x', fontsize = 14)    
         ax.xaxis.set_label_position('top') 
         ax.tick_params(labelsize=ticks_fontsize)
         if temporal_state_history and temporal_state_names:
             current_state = get_dict_item(temporal_state_history, t)
             state_name = get_dict_item(temporal_state_names, current_state)
-            title = f'Detections at time {t}. In state {current_state}: {state_name}'
+            plt.suptitle(f'Detections at time {round(float(t)*frequency,1)}', fontsize=24)
+            title = f'In state {current_state}: {state_name}'
+            ax.set_title(title, fontsize=15)
         else:
-            title = f'Detections at time {t}'
-        ax.set_title(title, fontsize=fontsize)
+            title = f'Detections at time {round(float(t)*frequency,1)}'
+            ax.set_title(title, fontsize=fontsize)
 
         # returning numpy image
         return mplfig_to_npimage(fig)
@@ -636,21 +728,24 @@ def visualize_detections(detections, image_bounds, display_frames=None, temporal
     return animation
 
 
-def visualize_detections_json(detections_path, image_bounds, display_frames=None, temporal_state_history=None, temporal_state_names=None, horizon=None, annotations_path=None, show_annotations=False, filepath='.detection.mp4', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+def visualize_detections_json(detections_path, image_bounds, frequency=1, display_frames=None, temporal_state_history=None, temporal_state_names=None, horizon=None, annotations_path=None, show_annotations=False, filepath='.detection.mp4', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
     detections = json_to_detection(detections_path)
     annotations = json_to_annot(annotations_path) if (show_annotations and annotations_path) else None
-    return visualize_detections(detections, image_bounds, display_frames=display_frames, temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations=annotations, show_annotations=show_annotations, filepath=filepath, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+    return visualize_detections(detections, image_bounds, frequency=frequency, display_frames=display_frames, temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations=annotations, show_annotations=show_annotations, filepath=filepath, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
 
-def visualize_detections_multiple_cameras(camera_ids, detections_paths, image_bounds, temporal_state_history=None, temporal_state_names=None, horizons=None, annotations_paths=None, show_annotations=False, folder_path='./', fps=3, fastplot=False, max_time_steps=None, display_when_min_vessels=0):
+def visualize_detections_multiple_cameras(camera_ids, detections_paths, image_bounds, temporal_state_history=None, 
+                                          temporal_state_names=None, horizons=None, annotations_paths=None, 
+                                          show_annotations=False, folder_path='./', fps=3, fastplot=False, 
+                                          max_time_steps=None, display_when_min_vessels=0, skip_ten=False, frequency=1):
     detections = {cameraID: json_to_detection(detections_paths[cameraID]) for cameraID in camera_ids}
     annotations = {cameraID: json_to_annot(annotations_paths[cameraID]) for cameraID in camera_ids} if (show_annotations and annotations_paths) else None
-    frames = find_frames_detections_multiple_cameras(camera_ids, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps)
+    frames = find_frames_detections_multiple_cameras(camera_ids, detections, annotations, image_bounds, display_when_min_vessels, fps, max_time_steps, skip_ten=skip_ten)
     clips = []
     for cameraID in camera_ids:
         filename = os.path.join(folder_path, f'detections_C{cameraID}.mp4')
         image_bound = image_bounds[cameraID]
         horizon = horizons[cameraID]
-        animation = visualize_detections_json(detections_paths[cameraID], image_bound, display_frames=frames[cameraID], temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations_path=annotations_paths[cameraID], show_annotations=show_annotations, filepath=filename, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
+        animation = visualize_detections_json(detections_paths[cameraID], image_bound, frequency=frequency, display_frames=frames[cameraID], temporal_state_history=temporal_state_history, temporal_state_names=temporal_state_names, horizon=horizon, annotations_path=annotations_paths[cameraID], show_annotations=show_annotations, filepath=filename, fps=fps, fastplot=fastplot, display_when_min_vessels=display_when_min_vessels, max_time_steps=max_time_steps)
         clips.append(animation)
     if len(clips)>1:
         final = clips_array([clips])
