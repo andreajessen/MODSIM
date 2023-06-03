@@ -25,7 +25,6 @@ class ErrorGenerator:
         self.temporal_model = TemporalModel(transition_matrix, states, start_state)
 
 
-
     def generate_error_BB(self, annot: Annotation):
         '''
         Input: 
@@ -34,10 +33,13 @@ class ErrorGenerator:
         BB = annot.bb
         bb_error_stats = self.temporal_model.get_bb_error_stats()
         # Introduce error based on normal distribution
-        e_cx = float(np.random.normal(bb_error_stats.mu_cx, bb_error_stats.sigma_cx, 1))
-        e_cy = float(np.random.normal(bb_error_stats.mu_cy, bb_error_stats.sigma_cy, 1))
-        e_w = float(np.random.normal(bb_error_stats.mu_w, bb_error_stats.sigma_w, 1))
-        e_h = float(np.random.normal(bb_error_stats.mu_h, bb_error_stats.sigma_h, 1))
+
+        error_vector = np.random.multivariate_normal(bb_error_stats.mean_error_vector, bb_error_stats.error_covariance_matrix)
+
+        e_cx = error_vector[0]
+        e_cy = error_vector[1]
+        e_w = error_vector[2]
+        e_h = error_vector[3]
 
         new_centre = BB.centre + [e_cx, e_cy]
         new_w = BB.width + e_w
