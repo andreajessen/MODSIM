@@ -1,15 +1,10 @@
 from dataclasses import dataclass
 
+# (bb_error_stats.mean_error_vector, bb_error_stats.error_covariance_matrix)
 @dataclass
 class BBStats:
-    sigma_cx: float
-    mu_cx: float
-    sigma_cy: float
-    mu_cy: float
-    sigma_h: float
-    mu_h: float
-    sigma_w: float
-    mu_w: float
+    mean_error_vector: any
+    error_covariance_matrix: any
 
 class ConditionState:
 
@@ -25,14 +20,8 @@ class ConditionState:
         self.id = id
         self.confusion_matrix = confusion_matrix
         self.bb_stats = BBStats(
-            sigma_cx=bb_stats['sigma_cx'], 
-            mu_cx=bb_stats['mu_cx'], 
-            sigma_cy=bb_stats['sigma_cy'], 
-            mu_cy=bb_stats['mu_cy'], 
-            sigma_h=bb_stats['sigma_h'],
-            mu_h=bb_stats['mu_h'],
-            sigma_w=bb_stats['sigma_w'],
-            mu_w=bb_stats['mu_w']
+            mean_error_vector=bb_stats['mean_error_vector'], 
+            error_covariance_matrix=bb_stats['error_covariance_matrix'], 
         )
         self.fdr = fdr
 
