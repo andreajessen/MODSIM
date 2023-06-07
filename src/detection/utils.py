@@ -335,41 +335,6 @@ def filter_detections_by_confidence(detections, confidence_threshold):
             filtered_detections[image_name] = filtered_image_detections
     return filtered_detections
 
-def create_precision_recall_curve(ground_truth_annots, predicted_detections, iou_threshold):
-    precisions = []
-    recalls = []
-    cf_thresholds = np.arange(0.0, 1.0, 0.05)
-    for confidence_threshold in cf_thresholds:
-        predicted_detections_above_confidence = filter_detections_by_confidence(predicted_detections, confidence_threshold)
-        confusion_matrix = compute_confusion_matrix(ground_truth_annots, predicted_detections_above_confidence, iou_threshold)
-        tp = confusion_matrix[0][0]
-        fp = confusion_matrix[0][1]
-        fn = confusion_matrix[1][0]
-        print(confidence_threshold, tp, fp, fn)
-        precisions.append(compute_precision(tp, fp))
-        recalls.append(compute_recall(tp, fn))
-    print(precisions)
-    print(recalls)
-    plt.plot(recalls, precisions, 'b', label='Precision-Recall Curve')
-    plt.xlim(0, 1.01)
-    plt.ylim(0, 1.01)
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.show()
-    plt.plot(cf_thresholds, precisions, 'b', label='Precision-Recall Curve')
-    plt.xlim(0, 1.01)
-    plt.ylim(0, 1.01)
-    plt.xlabel('Confidence')
-    plt.ylabel('Precision')
-    plt.show()
-    plt.plot(cf_thresholds, recalls, 'b', label='Precision-Recall Curve')
-    plt.xlim(0, 1.01)
-    plt.ylim(0, 1.01)
-    plt.xlabel('Confidence')
-    plt.ylabel('Recall')
-    plt.show()
-
-
 
 def get_file_name_synthetic(path):
     return path.strip().split('/')[-1].split('.')[0]
@@ -435,6 +400,7 @@ def display_stats(ground_truth_annots, predicted_detections, iou_treshold, confi
     plt.close('all')
 
     return covariance_matrix, expected_value_vector, latex_std_exp
+
 def get_annots_and_detections(GROUND_TRUTH_PATHS, PREDICTED_PATH, IMAGE_WIDTH, IMAGE_HEIGHT):
     #image_paths = list(itertools.chain.from_iterable([glob.glob(f'{path}/images/*.json') for path in GROUND_TRUTH_PATHS]))
 
