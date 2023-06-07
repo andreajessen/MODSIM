@@ -45,7 +45,7 @@ class DynamicSceneGenerator():
         return True
 
 
-    def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=980, w_min=0.005, w_max=0.03, p_0=[1000,1000], frequency=1):
+    def generate_random_tracks(self, start_time=0, end_time=200, min_radius=5, max_radius=480, w_min=0.007, w_max=0.03, p_0=[1000,1000], frequency=1):
         '''
         Generates random tracks for each vessel in the scene
         Input:
@@ -146,11 +146,11 @@ class DynamicSceneGenerator():
         for n in range(number):
             vesselID = f'vessel{n}'
             if n%3==0:
-                self.vessels.append(Vessel(vesselID, vessel_sizes['sailboat'][0], vessel_sizes['sailboat'][1], vessel_sizes['sailboat'][2], 'sailboat'))
+                self.vessels.append(Vessel(vesselID, vessel_sizes['sailboat'][0], vessel_sizes['sailboat'][1], vessel_sizes['sailboat'][2], 'Vessel'))
             elif n%5==0:
-                self.vessels.append(Vessel(vesselID, vessel_sizes['ferry'][0], vessel_sizes['ferry'][1], vessel_sizes['ferry'][2], 'ferry'))
+                self.vessels.append(Vessel(vesselID, vessel_sizes['ferry'][0], vessel_sizes['ferry'][1], vessel_sizes['ferry'][2], 'Vessel'))
             else:
-                self.vessels.append(Vessel(vesselID, vessel_sizes['motorboat'][0], vessel_sizes['motorboat'][1], vessel_sizes['motorboat'][2], 'motorboat'))
+                self.vessels.append(Vessel(vesselID, vessel_sizes['motorboat'][0], vessel_sizes['motorboat'][1], vessel_sizes['motorboat'][2], 'Vessel'))
     
     def get_larges_radius(self):
         if not hasattr(self, 'largest_radius'):

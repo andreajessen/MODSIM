@@ -13,10 +13,10 @@ from datatypes.annotation import Annotation
 #########################################################
 #       Functionality for initializing DSG
 ##########################################################
-def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None):
+def initialize_dynamic_scene_with_random_tracks(number_of_vessels, writeToJson=False, path=None, max_radius=500, frequency=1):
     dsg = DynamicSceneGenerator()
     dsg.set_random_vessels(number_of_vessels)
-    dsg.set_initial_vessel_tracks()
+    dsg.set_initial_vessel_tracks(max_radius=max_radius, frequency=frequency)
     if writeToJson and path:
         vessels = dsg.get_vessels()
         vessels_to_json(vessels, path)

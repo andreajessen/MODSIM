@@ -1,7 +1,4 @@
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Tuple
 import numpy as np 
-import yaml
 import copy
 
 from datatypes.annotation import Annotation
@@ -10,25 +7,10 @@ from datatypes.detection import Detection
 from datatypes.temporalModel import TemporalModel
 from utils import update_detections_json
 
-@dataclass
-class DetectorStats:
-    sigma_cx: float
-    mu_cx: float
-    sigma_cy: float
-    mu_cy: float
-    sigma_h: float
-    mu_h: float
-    sigma_w: float
-    mu_w: float
-    labels: Optional[List[str]]
-    false_positives_labels: Optional[List[float]]
-    confusion_matrix: Optional[Dict[str, Dict[str, float]]]
-    confidence_threshold: float
-
 
 class ErrorGenerator:
 
-    def __init__(self, detector_stats_path: str, temporal_model: bool, transition_matrix, states, start_state):
+    def __init__(self, labels, background_label, confidence_threshold, transition_matrix, states, start_state):
         '''
         Input:
         - detector_stats_path: path to detector statistics
@@ -37,37 +19,10 @@ class ErrorGenerator:
         - States (dict): key: Id/index in transition matrix, value: ConditionState class
         - Start state (int): ID/index of start state
         '''
-
-        # Read YAML file
-        with open(detector_stats_path, 'r') as stream:
-            data_loaded = yaml.safe_load(stream)
-
-        # Sigma = standard deviation
-        # Mu = expected values
-        self.stats = DetectorStats(
-            sigma_cx=data_loaded['errorStats']['sigma_cx'], 
-            mu_cx=data_loaded['errorStats']['mu_cx'], 
-            sigma_cy=data_loaded['errorStats']['sigma_cy'], 
-            mu_cy=data_loaded['errorStats']['mu_cy'], 
-            sigma_h=data_loaded['errorStats']['sigma_h'],
-            mu_h=data_loaded['errorStats']['mu_h'],
-            sigma_w=data_loaded['errorStats']['sigma_w'],
-            mu_w=data_loaded['errorStats']['mu_w'],
-            labels=data_loaded.get('labels'),
-            false_positives_labels=data_loaded.get('falsePositivesLabels'),
-            confusion_matrix=data_loaded.get('confusionMatrix'),
-            confidence_threshold=data_loaded['confidenceThreshold']
-        )
-
-        self.classification = bool(self.stats.labels)
-        self.BACKGROUND = 'Background'
-        self.possible_labels = self.stats.labels + [self.BACKGROUND] if self.classification else None
-        self.confidence_threshold = self.stats.confidence_threshold
-        self.drop_out = self.stats.confusion_matrix['FN'] if self.stats.confusion_matrix else None
-        self.false_positives = self.stats.confusion_matrix['FP'] if self.stats.confusion_matrix else None
-        self.false_positives_labels = self.stats.false_positives_labels
-        self.temporal_model = TemporalModel(transition_matrix, states, start_state) if temporal_model else None
-
+        self.background_label = background_label
+        self.possible_labels = labels + [background_label]
+        self.confidence_threshold = confidence_threshold
+        self.temporal_model = TemporalModel(transition_matrix, states, start_state)
 
 
     def generate_error_BB(self, annot: Annotation):
@@ -76,11 +31,15 @@ class ErrorGenerator:
         annot (Annotation)
         '''
         BB = annot.bb
+        bb_error_stats = self.temporal_model.get_bb_error_stats()
         # Introduce error based on normal distribution
-        e_cx = float(np.random.normal(self.stats.mu_cx, self.stats.sigma_cx, 1))
-        e_cy = float(np.random.normal(self.stats.mu_cy, self.stats.sigma_cy, 1))
-        e_w = float(np.random.normal(self.stats.mu_w, self.stats.sigma_w, 1))
-        e_h = float(np.random.normal(self.stats.mu_h, self.stats.sigma_h, 1))
+
+        error_vector = np.random.multivariate_normal(bb_error_stats.mean_error_vector, bb_error_stats.error_covariance_matrix)
+
+        e_cx = error_vector[0]
+        e_cy = error_vector[1]
+        e_w = error_vector[2]
+        e_h = error_vector[3]
 
         new_centre = BB.centre + [e_cx, e_cy]
         new_w = BB.width + e_w
@@ -96,9 +55,8 @@ class ErrorGenerator:
         # Confusion matrix excludes background label.
         # For np choice the p array must sum to one, so we need to include the label background
         # If the label is background it is a drop-out.
-        p = self.temporal_model.get_confusion_matrix_labels()[true_label]
-        p_w_drop_out = p.append(1-sum(p))
-        pred_label = np.random.choice(self.possible_labels, p=p_w_drop_out)
+        p = self.temporal_model.get_confusion_matrix()[true_label]
+        pred_label = np.random.choice(self.possible_labels, p=p)
         return pred_label
     
     def generate_confidence_score(self):
@@ -115,47 +73,18 @@ class ErrorGenerator:
             confidence_score = 1
         return round(confidence_score,3)
 
-    def is_dropout(self):
-        '''
-        Calculates dropout when drop out rate is not dependent on classification
-        '''
-        drop_out = self.temporal_model.get_dropout()
-        # Should BB size affect dropout
-        dropout = np.random.choice([True, False], p=[drop_out, 1-drop_out])
-        return dropout
-
-    def generate_error_class(self, annot):
+    def generate_error(self, annot: Annotation):
         '''
         Generates error when classification is true
         - annot (Annotation)
         '''
         label = self.generate_error_label(annot.label)
-        if label == self.BACKGROUND:
-            return None
-        eBB = self.generate_error_BB(annot)
-        confidence_score = self.generate_confidence_score()
-        return Detection(eBB, label, annot.vesselID, confidence_score)
-    
-    def generate_error_detection(self, annot):
-        '''
-        Generates error when classification is false
-        - annot (Annotation)
-        '''
-        label = None
-        if self.is_dropout():
+        if label == self.background_label:
             return None
         eBB = self.generate_error_BB(annot)
         confidence_score = self.generate_confidence_score()
         return Detection(eBB, label, annot.vesselID, confidence_score)
 
-        
-    def generate_error(self, annot: Annotation):
-        '''
-        Generates detections (erroneous bounding boxes (and labels))
-        '''
-        if self.classification:
-            return self.generate_error_class(annot)
-        return self.generate_error_detection(annot)
 
     def generate_detections_t(self, annots_t, t, image_bounds, horizon, writeToJson=False, filename=None, log=False):
         '''
@@ -203,20 +132,21 @@ class ErrorGenerator:
         - Horizon (array of 2 ProjectedPoints): Two points at the horizon
         - num_detections (int): Number of detections at the current time step
         '''
-        fp_prob = self.temporal_model.get_false_positives()
+        fdr = self.temporal_model.get_false_discovery_rate()
 
         # Higher confidence threshold should give less clutter
         # The maximum number of false positives are dependent on how many detections there are in the image
         # to ensure that the number of false positive bounding boxes is balanced with the number of true positive bounding boxes,
         # Confidence threshold should influence the amount of clutter
-        max_fp = max(0, round(fp_prob*numb_detections-self.confidence_threshold))
+        max_fp = max(0, round(fdr*numb_detections-self.confidence_threshold))
         if max_fp == 0: return None
         false_detections = []
         for _ in range(max_fp):
-            is_fp = np.random.choice([True, False], p=[fp_prob, 1-fp_prob])
+            is_fp = np.random.choice([True, False], p=[fdr, 1-fdr])
             if is_fp:
                 # false_positives_labels is the probability of the FP to be each class when we know there is a FP
-                label = np.random.choice(self.possible_labels[:-1], p = self.false_positives_labels) if self.classification else None
+                p = self.temporal_model.get_confusion_matrix()[self.background_label][:-1]
+                label = np.random.choice(self.possible_labels[:-1], p = p)
                 detection = self.create_random_detection(image_bounds, horizon, label)
                 false_detections.append(detection)
         return false_detections
