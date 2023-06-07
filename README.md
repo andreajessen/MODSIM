@@ -1,4 +1,4 @@
-# MODSIM: an efficent Marine Object Dection Simulator
+# MODSIM: an efficient Marine Object Decetion Simulator
 
 
 This repository contains the system developed for a master's thesis in Computer Science at the Norwegian University of Science and Technology (NTNU). The system's components are described in detail in the thesis.
