@@ -33,13 +33,13 @@ The following parameters are required for the simulation:
 ### Simulations with pose data generated with a circular motion model
 Simulations can be created using the circular motion model by running the following file:
 
-´´´
+```
 src/MODSIM_w_dsg.ipynb
-´´´
+```
 
 ### Simulations reading predefined pose data
 Simulations can be created using predefined pose data by running the following fil: 
 
-´´´
+```
 src/MODSIM_w_pose_data.ipynb
-´´´
+```
