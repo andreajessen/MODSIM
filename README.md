@@ -6,7 +6,7 @@ This repository contains the system developed for a master's thesis in Computer 
 
 ### Error generation
 
-To accurately simulate the errors made by the desired detector, you need to define specific error metrics. These metrics should be provided in a YAML file. We have provided an example YAML file at `src/detector_stats_config.yaml`. The parameters in this file have been ubtained through experiments conducted in the master's thesis. 
+To accurately simulate the errors made by the desired detector, you need to define specific error metrics. These metrics should be provided in a YAML file. We have provided an example YAML file at `src/detector_stats_config.yaml`. The parameters in this file have been obtained through experiments conducted in the master's thesis. 
 
 ### Required Parameters
 The following parameters are required for the simulation:
